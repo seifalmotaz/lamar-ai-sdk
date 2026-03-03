@@ -19,27 +19,34 @@ func (m *EmbeddingModel) MaxEmbeddingsPerCall() int {
 }
 
 func (m *EmbeddingModel) Embed(ctx context.Context, req *provider.EmbedRequest) (*provider.EmbedResult, error) {
-	openaiReq := &EmbeddingRequest{
-		Model: m.id,
-		Input: req.Texts,
-	}
+	embeddings, usage, err := m.provider.wrapEmbed(ctx, m.id, req.Texts, func(ctx context.Context, texts []string) ([][]float64, provider.Usage, error) {
+		openaiReq := &EmbeddingRequest{
+			Model: m.id,
+			Input: texts,
+		}
 
-	var resp EmbeddingResponse
-	if err := m.provider.client.Post(ctx, "/embeddings", openaiReq, &resp); err != nil {
+		var resp EmbeddingResponse
+		if err := m.provider.client.Post(ctx, "/embeddings", openaiReq, &resp); err != nil {
+			return nil, provider.Usage{}, err
+		}
+
+		embeddings := make([][]float64, len(resp.Data))
+		for _, d := range resp.Data {
+			embeddings[d.Index] = d.Embedding
+		}
+
+		return embeddings, provider.Usage{
+			PromptTokens:     resp.Usage.PromptTokens,
+			CompletionTokens: resp.Usage.CompletionTokens,
+			TotalTokens:      resp.Usage.TotalTokens,
+		}, nil
+	})
+	if err != nil {
 		return nil, err
-	}
-
-	embeddings := make([][]float64, len(resp.Data))
-	for _, d := range resp.Data {
-		embeddings[d.Index] = d.Embedding
 	}
 
 	return &provider.EmbedResult{
 		Embeddings: embeddings,
-		Usage: provider.Usage{
-			PromptTokens:     resp.Usage.PromptTokens,
-			CompletionTokens: resp.Usage.CompletionTokens,
-			TotalTokens:      resp.Usage.TotalTokens,
-		},
+		Usage:      usage,
 	}, nil
 }

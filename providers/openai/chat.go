@@ -18,17 +18,19 @@ func (m *ChatModel) Provider() string { return "openai" }
 func (m *ChatModel) ModelID() string  { return m.id }
 
 func (m *ChatModel) Generate(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-	openaiReq, err := m.buildRequest(req)
-	if err != nil {
-		return nil, err
-	}
+	return m.provider.wrapGenerate(ctx, m.id, req, func(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
+		openaiReq, err := m.buildRequest(req)
+		if err != nil {
+			return nil, err
+		}
 
-	var resp ChatCompletionResponse
-	if err := m.provider.client.Post(ctx, "/chat/completions", openaiReq, &resp); err != nil {
-		return nil, err
-	}
+		var resp ChatCompletionResponse
+		if err := m.provider.client.Post(ctx, "/chat/completions", openaiReq, &resp); err != nil {
+			return nil, err
+		}
 
-	return m.buildResult(&resp)
+		return m.buildResult(&resp)
+	})
 }
 
 func (m *ChatModel) buildRequest(req *provider.GenerateRequest) (*ChatCompletionRequest, error) {
@@ -121,30 +123,74 @@ func convertMessage(msg provider.Message) ChatMessage {
 		}
 	}
 
-	parts := make([]ContentPart, len(msg.Content))
-	for i, c := range msg.Content {
+	var textParts []string
+	var toolCalls []ToolCall
+	var otherParts []ContentPart
+
+	for _, c := range msg.Content {
 		switch content := c.(type) {
 		case provider.TextContent:
-			parts[i] = ContentPart{Type: "text", Text: content.Text}
+			if content.Text != "" {
+				textParts = append(textParts, content.Text)
+			}
+		case provider.ToolCallContent:
+			toolCalls = append(toolCalls, ToolCall{
+				ID:   content.ID,
+				Type: "function",
+				Function: FunctionCallData{
+					Name:      content.Name,
+					Arguments: string(content.Input),
+				},
+			})
+		case provider.ToolResultContent:
+			cm.Role = "tool"
+			cm.ToolCallID = content.ID
+			cm.Content = string(content.Result)
+			return cm
 		case provider.ImageContent:
 			if content.MediaType == "url" {
-				parts[i] = ContentPart{
+				otherParts = append(otherParts, ContentPart{
 					Type: "image_url",
 					ImageURL: &ImageURL{
 						URL: string(content.Data),
 					},
-				}
+				})
 			} else {
-				parts[i] = ContentPart{
+				otherParts = append(otherParts, ContentPart{
 					Type: "image_url",
 					ImageURL: &ImageURL{
 						URL: "data:" + content.MediaType + ";base64," + encodeBase64(content.Data),
 					},
-				}
+				})
 			}
 		}
 	}
-	cm.Content = parts
+
+	if len(toolCalls) > 0 {
+		cm.ToolCalls = toolCalls
+		if len(textParts) == 1 {
+			cm.Content = textParts[0]
+		} else if len(textParts) > 1 {
+			parts := make([]ContentPart, len(textParts)+len(otherParts))
+			for i, t := range textParts {
+				parts[i] = ContentPart{Type: "text", Text: t}
+			}
+			copy(parts[len(textParts):], otherParts)
+			cm.Content = parts
+		} else if len(otherParts) > 0 {
+			cm.Content = otherParts
+		}
+	} else if len(textParts) == 1 && len(otherParts) == 0 {
+		cm.Content = textParts[0]
+	} else if len(textParts) > 0 || len(otherParts) > 0 {
+		parts := make([]ContentPart, 0, len(textParts)+len(otherParts))
+		for _, t := range textParts {
+			parts = append(parts, ContentPart{Type: "text", Text: t})
+		}
+		parts = append(parts, otherParts...)
+		cm.Content = parts
+	}
+
 	return cm
 }
 

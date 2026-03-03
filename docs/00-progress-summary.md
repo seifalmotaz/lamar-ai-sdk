@@ -171,6 +171,8 @@ type Middleware func(Handler) Handler
 | Tools | `tool/` | ✅ |
 | Structured output | `generate/`, `stream/` | ✅ |
 | Middleware | `middleware/` | ✅ |
+| Timeout middleware | `middleware/` | ✅ |
+| Provider middleware | `providers/openai/` | ✅ |
 | OpenAI provider | `providers/openai/` | ✅ |
 | Schema extraction | `internal/schema/` | ✅ |
 | SSE parsing | `internal/sse/` | ✅ |
@@ -196,7 +198,7 @@ type Middleware func(Handler) Handler
 
 ## Next Steps
 
-Phase 2 is complete. Potential future work:
+Phase 3 is complete. Potential future work:
 
 1. **Additional Providers**
    - Anthropic (Claude)
@@ -223,3 +225,25 @@ Phase 2 is complete. Potential future work:
    - Connection pooling
    - Request batching
    - Response caching
+
+## Phase 3 Accomplishments (COMPLETE)
+
+### Enhanced Middleware
+- ✅ `middleware/timeout.go` - Timeout enforcement with configurable options
+- ✅ Provider-level middleware integration via `WithMiddleware` option
+- ✅ Middleware wired into generate and embed operations
+- ✅ Timeout middleware tests with full coverage
+- ✅ Provider middleware integration tests
+- ✅ Example: `examples/openai/middleware_timeout/main.go`
+
+### Middleware Features
+- `Timeout(config)` - Configurable timeout with per-provider and per-model overrides
+- `TimeoutWithDefault(duration)` - Simple timeout with default duration
+- `TimeoutPerProvider(map)` - Per-provider timeout configuration
+- Context deadline is respected (shorter deadline wins)
+- Timeout error wrapped as `provider.Error` with `CodeAPITimeout`
+
+### Provider Integration
+- `openai.WithMiddleware(middlewares...)` option for provider configuration
+- Middleware chain applied to `Generate()` and `Embed()` operations
+- Zero overhead when no middleware configured

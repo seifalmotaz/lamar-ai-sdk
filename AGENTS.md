@@ -79,25 +79,19 @@ type Middleware func(Handler) Handler
 
 ## Current Phase
 
-**Phase 1 Complete** - All core functionality implemented with OpenAI provider.
+**Phase 3 Complete** - Enhanced Middleware with timeout enforcement and provider integration.
 
-### Phase 1 Accomplishments
+### Phase 3 Accomplishments
 
-**Weeks 1-2:** Core interfaces, types, errors, options pattern, middleware interface
-- Provider package with interfaces (`Model`, `Generator`, `Streamer`, `LanguageModel`, `EmbeddingModel`)
-- Typed errors with codes (`provider.Error`)
-- Content types as interface sum type
-- Generate and Embed packages with functional options
-- Middleware handler chain pattern
+**Middleware Enhancements:**
+- ✅ Timeout middleware with per-provider and per-model overrides
+- ✅ Provider-level middleware integration via `WithMiddleware` option
+- ✅ Middleware wired into generate, stream, and embed operations
 
-**Weeks 3-4:** Streaming, tools, structured output, observability
-- Stream package with `Stream()` and `StreamObject[T]()`
-- SSE parser for streaming responses
-- Tool package with `NewTool[In, Out]()`
-- Schema extraction from Go structs
-- GenerateObject[T]() and StreamObject[T]()
-- OpenAI streaming implementation
-- Tracing and retry middleware
+**Weeks 5-6:** Enhanced middleware with production-ready features
+- `middleware/timeout.go` - Timeout enforcement with configurable options
+- `providers/openai/` - Middleware support in Provider struct
+- `examples/openai/middleware_timeout/` - Usage examples
 
 ### What's Implemented
 
@@ -110,11 +104,16 @@ type Middleware func(Handler) Handler
 | Tools | `tool/` | ✅ |
 | Structured output | `generate/`, `stream/` | ✅ |
 | Middleware | `middleware/` | ✅ |
+| Timeout middleware | `middleware/` | ✅ |
+| Provider middleware | `providers/openai/` | ✅ |
 | OpenAI provider | `providers/openai/` | ✅ |
 | Schema extraction | `internal/schema/` | ✅ |
 | SSE parsing | `internal/sse/` | ✅ |
 | Examples | `examples/` | ✅ |
 | Integration tests | `tests/integration/` | ✅ |
+| Context helpers | `context.go` | ✅ |
+| Godoc coverage | All packages | ✅ |
+| Makefile | `Makefile` | ✅ |
 
 ## Key Files
 

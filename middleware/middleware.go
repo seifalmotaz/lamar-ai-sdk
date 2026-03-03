@@ -104,4 +104,38 @@ type EmbedResponse struct {
 	UsageData  provider.Usage
 }
 
-func (r *EmbedResponse) Usage() provider.Usage { return r.UsageData }
+func (r *EmbedResponse) Usage() provider.Usage               { return r.UsageData }
+func (r *EmbedResponse) FinishReason() provider.FinishReason { return provider.FinishReasonStop }
+
+// StreamRequest represents a streaming request for middleware processing.
+type StreamRequest struct {
+	ProviderName string
+	Model        string
+	Prompt       string
+	Messages     []provider.Message
+	Config       provider.Config
+}
+
+func (r *StreamRequest) Provider() string { return r.ProviderName }
+func (r *StreamRequest) ModelID() string  { return r.Model }
+func (r *StreamRequest) InputCount() int  { return 1 }
+
+// StreamResponse represents a streaming response for middleware processing.
+// Note: Usage and FinishReason are not available until the stream completes,
+// so middleware should rely on the Stream channel for observing stream behavior.
+type StreamResponse struct {
+	StreamChan       <-chan provider.StreamPart
+	DoneChan         <-chan struct{}
+	TextFunc         func() (string, error)
+	UsageFunc        func() (provider.Usage, error)
+	FinishReasonFunc func() (provider.FinishReason, error)
+}
+
+func (r *StreamResponse) Usage() provider.Usage {
+	u, _ := r.UsageFunc()
+	return u
+}
+func (r *StreamResponse) FinishReason() provider.FinishReason {
+	fr, _ := r.FinishReasonFunc()
+	return fr
+}

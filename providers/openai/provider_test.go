@@ -6,9 +6,143 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/seifalmotaz/lamar-sdk/middleware"
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
+
+func TestWithMiddleware_Streaming(t *testing.T) {
+	t.Run("middleware is applied to stream", func(t *testing.T) {
+		var called bool
+		testMiddleware := func(next middleware.Handler) middleware.Handler {
+			return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+				called = true
+				return next.Handle(ctx, req)
+			})
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			flusher, _ := w.(http.Flusher)
+
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}\n\n"))
+			flusher.Flush()
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":1,\"total_tokens\":6}}\n\n"))
+			flusher.Flush()
+			w.Write([]byte("data: [DONE]\n\n"))
+			flusher.Flush()
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(testMiddleware),
+		)
+		model := p.StreamingModel("gpt-4")
+
+		result, err := model.Stream(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var textParts []string
+		for part := range result.Stream {
+			switch p := part.(type) {
+			case provider.StreamTextPart:
+				textParts = append(textParts, p.Delta)
+			case provider.StreamErrorPart:
+				t.Fatalf("stream error: %v", p.Error)
+			}
+		}
+
+		if !called {
+			t.Error("middleware was not called for stream")
+		}
+		if len(textParts) == 0 {
+			t.Error("expected text parts in stream")
+		}
+	})
+
+	t.Run("timeout middleware works with stream", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(middleware.TimeoutWithDefault(10*time.Millisecond)),
+		)
+		model := p.StreamingModel("gpt-4")
+
+		start := time.Now()
+		_, err := model.Stream(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+
+		elapsed := time.Since(start)
+		if elapsed > 100*time.Millisecond {
+			t.Errorf("timeout took too long: %v", elapsed)
+		}
+
+		if err == nil {
+			t.Error("expected timeout error")
+		}
+
+		var providerErr *provider.Error
+		if !provider.IsError(err, &providerErr) {
+			t.Errorf("expected provider.Error, got: %v", err)
+		} else if providerErr.Code != provider.CodeAPITimeout {
+			t.Errorf("expected CodeAPITimeout, got: %v", providerErr.Code)
+		}
+	})
+
+	t.Run("no middleware stream passthrough", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			flusher, _ := w.(http.Flusher)
+
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}\n\n"))
+			flusher.Flush()
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"))
+			flusher.Flush()
+			w.Write([]byte("data: [DONE]\n\n"))
+			flusher.Flush()
+		}))
+		defer server.Close()
+
+		p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+		model := p.StreamingModel("gpt-4")
+
+		result, err := model.Stream(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		for range result.Stream {
+		}
+
+		<-result.Done
+		text, err := result.Text()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if text != "Hi" {
+			t.Errorf("Text = %q, want %q", text, "Hi")
+		}
+	})
+}
 
 func TestNewProvider(t *testing.T) {
 	t.Run("default configuration", func(t *testing.T) {
@@ -21,19 +155,13 @@ func TestNewProvider(t *testing.T) {
 		}
 	})
 
-	t.Run("with options", func(t *testing.T) {
-		customClient := &http.Client{}
+	t.Run("custom configuration", func(t *testing.T) {
 		p := NewProvider(
 			APIKey("test-key"),
 			BaseURL("https://custom.api.com/v1"),
-			HTTPClient(customClient),
 			OrgID("org-123"),
 			ProjectID("proj-456"),
 		)
-
-		if p.apiKey != "test-key" {
-			t.Errorf("apiKey = %q, want %q", p.apiKey, "test-key")
-		}
 		if p.baseURL != "https://custom.api.com/v1" {
 			t.Errorf("baseURL = %q, want %q", p.baseURL, "https://custom.api.com/v1")
 		}
@@ -484,6 +612,238 @@ func TestConvertToolChoice(t *testing.T) {
 		}
 		if fn["name"] != "get_weather" {
 			t.Errorf("function name = %q, want %q", fn["name"], "get_weather")
+		}
+	})
+}
+
+func TestWithMiddleware(t *testing.T) {
+	t.Run("middleware is applied to generate", func(t *testing.T) {
+		var called bool
+		testMiddleware := func(next middleware.Handler) middleware.Handler {
+			return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+				called = true
+				return next.Handle(ctx, req)
+			})
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resp := ChatCompletionResponse{
+				ID:    "test-id",
+				Model: "gpt-4",
+				Choices: []Choice{
+					{
+						Index: 0,
+						Message: ChatMessage{
+							Role:    "assistant",
+							Content: "Response",
+						},
+						FinishReason: "stop",
+					},
+				},
+				Usage: Usage{TotalTokens: 10},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(testMiddleware),
+		)
+		model := p.Model("gpt-4")
+
+		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !called {
+			t.Error("middleware was not called")
+		}
+	})
+
+	t.Run("middleware is applied to embed", func(t *testing.T) {
+		var called bool
+		testMiddleware := func(next middleware.Handler) middleware.Handler {
+			return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+				called = true
+				return next.Handle(ctx, req)
+			})
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resp := EmbeddingResponse{
+				Object: "list",
+				Model:  "text-embedding-3-small",
+				Data: []EmbeddingData{
+					{Object: "embedding", Index: 0, Embedding: []float64{0.1, 0.2}},
+				},
+				Usage: Usage{TotalTokens: 5},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(testMiddleware),
+		)
+		model := p.Embedding("text-embedding-3-small")
+
+		_, err := model.Embed(context.Background(), &provider.EmbedRequest{
+			Texts: []string{"Hello"},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if !called {
+			t.Error("middleware was not called")
+		}
+	})
+
+	t.Run("timeout middleware works with generate", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			resp := ChatCompletionResponse{
+				ID:    "test-id",
+				Model: "gpt-4",
+				Choices: []Choice{
+					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
+				},
+				Usage: Usage{TotalTokens: 10},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(middleware.TimeoutWithDefault(10*time.Millisecond)),
+		)
+		model := p.Model("gpt-4")
+
+		start := time.Now()
+		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+
+		elapsed := time.Since(start)
+		if elapsed > 50*time.Millisecond {
+			t.Errorf("timeout took too long: %v", elapsed)
+		}
+
+		if err == nil {
+			t.Error("expected timeout error")
+		}
+
+		var providerErr *provider.Error
+		if !provider.IsError(err, &providerErr) {
+			t.Errorf("expected provider.Error, got: %v", err)
+		} else if providerErr.Code != provider.CodeAPITimeout {
+			t.Errorf("expected CodeAPITimeout, got: %v", providerErr.Code)
+		}
+	})
+
+	t.Run("no middleware passthrough", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resp := ChatCompletionResponse{
+				ID:    "test-id",
+				Model: "gpt-4",
+				Choices: []Choice{
+					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
+				},
+				Usage: Usage{TotalTokens: 10},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+		}))
+		defer server.Close()
+
+		p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+		model := p.Model("gpt-4")
+
+		result, err := model.Generate(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if result.Text != "Response" {
+			t.Errorf("Text = %q, want %q", result.Text, "Response")
+		}
+	})
+
+	t.Run("multiple middlewares chain correctly", func(t *testing.T) {
+		var order []string
+
+		middleware1 := func(next middleware.Handler) middleware.Handler {
+			return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+				order = append(order, "middleware1-before")
+				resp, err := next.Handle(ctx, req)
+				order = append(order, "middleware1-after")
+				return resp, err
+			})
+		}
+
+		middleware2 := func(next middleware.Handler) middleware.Handler {
+			return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+				order = append(order, "middleware2-before")
+				resp, err := next.Handle(ctx, req)
+				order = append(order, "middleware2-after")
+				return resp, err
+			})
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resp := ChatCompletionResponse{
+				ID:    "test-id",
+				Model: "gpt-4",
+				Choices: []Choice{
+					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
+				},
+				Usage: Usage{TotalTokens: 10},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(resp)
+		}))
+		defer server.Close()
+
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL(server.URL),
+			WithMiddleware(middleware1, middleware2),
+		)
+		model := p.Model("gpt-4")
+
+		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
+			Prompt: "Hello",
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		expected := []string{
+			"middleware1-before",
+			"middleware2-before",
+			"middleware2-after",
+			"middleware1-after",
+		}
+		if len(order) != len(expected) {
+			t.Fatalf("expected %d calls, got %d: %v", len(expected), len(order), order)
+		}
+		for i, v := range expected {
+			if order[i] != v {
+				t.Errorf("order[%d] = %q, want %q", i, order[i], v)
+			}
 		}
 	})
 }

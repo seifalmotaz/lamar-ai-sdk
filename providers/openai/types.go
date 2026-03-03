@@ -76,6 +76,12 @@ type ResponseFormat struct {
 	JSONSchema json.RawMessage `json:"json_schema,omitempty"`
 }
 
+type JSONSchemaWrapper struct {
+	Name   string          `json:"name"`
+	Strict bool            `json:"strict"`
+	Schema json.RawMessage `json:"schema"`
+}
+
 type ChatCompletionResponse struct {
 	ID                string   `json:"id"`
 	Object            string   `json:"object"`

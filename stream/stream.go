@@ -8,6 +8,7 @@ import (
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
 
+// DefaultTimeout is the default timeout for streaming operations.
 const DefaultTimeout = 2 * time.Minute
 
 // Stream streams text generation from a model.

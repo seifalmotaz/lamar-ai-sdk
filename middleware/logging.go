@@ -7,6 +7,12 @@ import (
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
 
+// Logging creates a middleware that logs request lifecycle events.
+// Logs are written at DEBUG level for successful requests and ERROR level for failures.
+//
+// Example:
+//
+//	handler := middleware.Logging(logger)(nextHandler)
 func Logging(logger provider.Logger) Middleware {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, req Request) (Response, error) {

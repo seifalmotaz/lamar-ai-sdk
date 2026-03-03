@@ -9,11 +9,25 @@ import (
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
 
+// Default timeout constants for embedding operations.
 const (
-	DefaultTimeout      = 10 * time.Second
+	// DefaultTimeout is the default timeout for single embedding requests.
+	DefaultTimeout = 10 * time.Second
+	// DefaultBatchTimeout is the default timeout for batch embedding requests.
 	DefaultBatchTimeout = 5 * time.Minute
 )
 
+// Embed generates an embedding for a single text using the specified model.
+// It returns a Result containing the embedding vector and usage statistics,
+// or an error if the request fails.
+//
+// Example:
+//
+//	result, err := embed.Embed(ctx, model, "Hello, world!")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Embedding dimension: %d\n", len(result.Embedding))
 func Embed(ctx context.Context, model provider.EmbeddingModel, text string, opts ...Option) (*Result, error) {
 	if model == nil {
 		return nil, provider.ErrInvalidModel
@@ -69,6 +83,18 @@ func Embed(ctx context.Context, model provider.EmbeddingModel, text string, opts
 	}, nil
 }
 
+// EmbedBatch generates embeddings for multiple texts using the specified model.
+// It automatically handles batching based on the model's MaxEmbeddingsPerCall limit.
+// Batches are processed in parallel for improved performance.
+//
+// Example:
+//
+//	texts := []string{"Hello", "World", "Go"}
+//	result, err := embed.EmbedBatch(ctx, model, texts)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("Generated %d embeddings\n", len(result.Embeddings))
 func EmbedBatch(ctx context.Context, model provider.EmbeddingModel, texts []string, opts ...Option) (*BatchResult, error) {
 	if model == nil {
 		return nil, provider.ErrInvalidModel
@@ -127,10 +153,13 @@ func singleBatchCall(ctx context.Context, model provider.EmbeddingModel, texts [
 	}, nil
 }
 
+// BatchError represents errors that occurred during batch embedding processing.
+// It contains all errors from individual batch calls.
 type BatchError struct {
 	Errors []error
 }
 
+// Error implements the error interface for BatchError.
 func (e *BatchError) Error() string {
 	if len(e.Errors) == 1 {
 		return e.Errors[0].Error()
@@ -138,6 +167,7 @@ func (e *BatchError) Error() string {
 	return fmt.Sprintf("batch processing failed with %d errors", len(e.Errors))
 }
 
+// Unwrap returns all errors in the batch for use with errors.As/Is.
 func (e *BatchError) Unwrap() []error {
 	return e.Errors
 }

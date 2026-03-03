@@ -7,14 +7,28 @@ import (
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
 
+// DefaultTimeout is the default timeout for generate operations.
 const DefaultTimeout = 30 * time.Second
 
+// Generate performs a text generation request using the specified model.
+// It returns a Result containing the generated text and metadata, or an error if the request fails.
+//
+// The prompt parameter is the text to generate from. If empty and no messages are provided,
+// an ErrInvalidPrompt error is returned.
+//
+// Options can be provided to customize the generation behavior (see Option functions).
+//
+// Example:
+//
+//	result, err := generate.Generate(ctx, model, "Hello, world!",
+//	    generate.MaxTokens(100),
+//	    generate.Temperature(0.7),
+//	)
 func Generate(ctx context.Context, model provider.Generator, prompt string, opts ...Option) (*Result, error) {
 	if model == nil {
 		return nil, provider.ErrInvalidModel
 	}
 
-	// Check if context is already canceled
 	select {
 	case <-ctx.Done():
 		return nil, provider.NewError(provider.CodeContextCanceled, "context already canceled", ctx.Err())

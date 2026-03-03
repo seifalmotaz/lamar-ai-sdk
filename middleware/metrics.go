@@ -7,6 +7,12 @@ import (
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
 
+// Metrics creates a middleware that collects metrics for each request.
+// It records request duration, errors, and token usage.
+//
+// Example:
+//
+//	handler := middleware.Metrics(collector)(nextHandler)
 func Metrics(collector provider.MetricsCollector) Middleware {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, req Request) (Response, error) {

@@ -184,9 +184,41 @@ func convertToolChoice(tc provider.ToolChoice) any {
 }
 
 func convertResponseFormat(rf provider.ResponseFormat) *ResponseFormat {
+	if rf.Type != "json_schema" {
+		return &ResponseFormat{
+			Type:       rf.Type,
+			JSONSchema: rf.JSONSchema,
+		}
+	}
+
+	var schemaName string
+	var schemaData json.RawMessage
+
+	var raw map[string]any
+	if err := json.Unmarshal(rf.JSONSchema, &raw); err == nil {
+		if title, ok := raw["title"].(string); ok {
+			schemaName = title
+		} else if t, ok := raw["type"].(string); ok {
+			schemaName = t + "_schema"
+		}
+		schemaData = rf.JSONSchema
+	}
+
+	if schemaName == "" {
+		schemaName = "response"
+		schemaData = rf.JSONSchema
+	}
+
+	wrapper := JSONSchemaWrapper{
+		Name:   schemaName,
+		Strict: false,
+		Schema: schemaData,
+	}
+	wrapperBytes, _ := json.Marshal(wrapper)
+
 	return &ResponseFormat{
 		Type:       rf.Type,
-		JSONSchema: rf.JSONSchema,
+		JSONSchema: wrapperBytes,
 	}
 }
 

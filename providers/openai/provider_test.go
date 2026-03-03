@@ -1,0 +1,489 @@
+package openai
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/seifalmotaz/lamar-sdk/provider"
+)
+
+func TestNewProvider(t *testing.T) {
+	t.Run("default configuration", func(t *testing.T) {
+		p := NewProvider()
+		if p.baseURL != DefaultBaseURL {
+			t.Errorf("baseURL = %q, want %q", p.baseURL, DefaultBaseURL)
+		}
+		if p.client == nil {
+			t.Error("client is nil")
+		}
+	})
+
+	t.Run("with options", func(t *testing.T) {
+		customClient := &http.Client{}
+		p := NewProvider(
+			APIKey("test-key"),
+			BaseURL("https://custom.api.com/v1"),
+			HTTPClient(customClient),
+			OrgID("org-123"),
+			ProjectID("proj-456"),
+		)
+
+		if p.apiKey != "test-key" {
+			t.Errorf("apiKey = %q, want %q", p.apiKey, "test-key")
+		}
+		if p.baseURL != "https://custom.api.com/v1" {
+			t.Errorf("baseURL = %q, want %q", p.baseURL, "https://custom.api.com/v1")
+		}
+		if p.orgID != "org-123" {
+			t.Errorf("orgID = %q, want %q", p.orgID, "org-123")
+		}
+		if p.projectID != "proj-456" {
+			t.Errorf("projectID = %q, want %q", p.projectID, "proj-456")
+		}
+	})
+
+	t.Run("headers set", func(t *testing.T) {
+		p := NewProvider(APIKey("test-key"), OrgID("org-123"))
+		if p.client.Headers["Authorization"] != "Bearer test-key" {
+			t.Errorf("Authorization header = %q, want %q", p.client.Headers["Authorization"], "Bearer test-key")
+		}
+		if p.client.Headers["OpenAI-Organization"] != "org-123" {
+			t.Errorf("OpenAI-Organization header = %q, want %q", p.client.Headers["OpenAI-Organization"], "org-123")
+		}
+	})
+}
+
+func TestProviderModelMethods(t *testing.T) {
+	p := NewProvider(APIKey("test-key"))
+
+	t.Run("Model", func(t *testing.T) {
+		m := p.Model("gpt-4")
+		if m.Provider() != "openai" {
+			t.Errorf("Provider() = %q, want %q", m.Provider(), "openai")
+		}
+		if m.ModelID() != "gpt-4" {
+			t.Errorf("ModelID() = %q, want %q", m.ModelID(), "gpt-4")
+		}
+	})
+
+	t.Run("Embedding", func(t *testing.T) {
+		m := p.Embedding("text-embedding-3-small")
+		if m.Provider() != "openai" {
+			t.Errorf("Provider() = %q, want %q", m.Provider(), "openai")
+		}
+		if m.ModelID() != "text-embedding-3-small" {
+			t.Errorf("ModelID() = %q, want %q", m.ModelID(), "text-embedding-3-small")
+		}
+		if m.MaxEmbeddingsPerCall() != 2048 {
+			t.Errorf("MaxEmbeddingsPerCall() = %d, want 2048", m.MaxEmbeddingsPerCall())
+		}
+	})
+}
+
+func TestProviderConvenienceMethods(t *testing.T) {
+	p := NewProvider(APIKey("test-key"))
+
+	tests := []struct {
+		name     string
+		getModel func() provider.Generator
+		wantID   string
+	}{
+		{"GPT4", p.GPT4, "gpt-4"},
+		{"GPT4o", func() provider.Generator { return p.GPT4o() }, "gpt-4o"},
+		{"GPT4oMini", func() provider.Generator { return p.GPT4oMini() }, "gpt-4o-mini"},
+		{"GPT4Turbo", p.GPT4Turbo, "gpt-4-turbo"},
+		{"O1", p.O1, "o1"},
+		{"O1Mini", p.O1Mini, "o1-mini"},
+		{"O1Preview", p.O1Preview, "o1-preview"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := tt.getModel()
+			if m.ModelID() != tt.wantID {
+				t.Errorf("ModelID() = %q, want %q", m.ModelID(), tt.wantID)
+			}
+		})
+	}
+}
+
+func TestPackageConvenienceFunctions(t *testing.T) {
+	tests := []struct {
+		name     string
+		getModel func() provider.Generator
+		wantID   string
+	}{
+		{"GPT4", GPT4, "gpt-4"},
+		{"GPT4o", GPT4o, "gpt-4o"},
+		{"GPT4oMini", GPT4oMini, "gpt-4o-mini"},
+		{"O1", O1, "o1"},
+		{"O1Mini", O1Mini, "o1-mini"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := tt.getModel()
+			if m.ModelID() != tt.wantID {
+				t.Errorf("ModelID() = %q, want %q", m.ModelID(), tt.wantID)
+			}
+		})
+	}
+}
+
+func TestEmbeddingConvenienceMethods(t *testing.T) {
+	p := NewProvider(APIKey("test-key"))
+
+	tests := []struct {
+		name     string
+		getModel func() provider.EmbeddingModel
+		wantID   string
+	}{
+		{"TextEmbedding3Small", p.TextEmbedding3Small, "text-embedding-3-small"},
+		{"TextEmbedding3Large", p.TextEmbedding3Large, "text-embedding-3-large"},
+		{"TextEmbeddingAda002", p.TextEmbeddingAda002, "text-embedding-ada-002"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := tt.getModel()
+			if m.ModelID() != tt.wantID {
+				t.Errorf("ModelID() = %q, want %q", m.ModelID(), tt.wantID)
+			}
+		})
+	}
+}
+
+func TestChatModelGenerate(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Error("missing Authorization header")
+		}
+		if r.URL.Path != "/chat/completions" {
+			t.Errorf("path = %q, want %q", r.URL.Path, "/chat/completions")
+		}
+
+		resp := ChatCompletionResponse{
+			ID:    "test-id",
+			Model: "gpt-4",
+			Choices: []Choice{
+				{
+					Index: 0,
+					Message: ChatMessage{
+						Role:    "assistant",
+						Content: "Hello! How can I help you?",
+					},
+					FinishReason: "stop",
+				},
+			},
+			Usage: Usage{
+				PromptTokens:     10,
+				CompletionTokens: 8,
+				TotalTokens:      18,
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+	model := p.Model("gpt-4")
+
+	result, err := model.Generate(context.Background(), &provider.GenerateRequest{
+		Prompt: "Hello",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Text != "Hello! How can I help you?" {
+		t.Errorf("Text = %q, want %q", result.Text, "Hello! How can I help you?")
+	}
+	if result.FinishReason != provider.FinishReasonStop {
+		t.Errorf("FinishReason = %q, want %q", result.FinishReason, provider.FinishReasonStop)
+	}
+	if result.Usage.TotalTokens != 18 {
+		t.Errorf("TotalTokens = %d, want 18", result.Usage.TotalTokens)
+	}
+}
+
+func TestChatModelGenerateWithSystem(t *testing.T) {
+	var receivedReq ChatCompletionRequest
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&receivedReq); err != nil {
+			t.Errorf("failed to decode request: %v", err)
+		}
+
+		resp := ChatCompletionResponse{
+			ID:    "test-id",
+			Model: "gpt-4",
+			Choices: []Choice{
+				{
+					Index: 0,
+					Message: ChatMessage{
+						Role:    "assistant",
+						Content: "Response",
+					},
+					FinishReason: "stop",
+				},
+			},
+			Usage: Usage{TotalTokens: 10},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+	model := p.Model("gpt-4")
+
+	_, err := model.Generate(context.Background(), &provider.GenerateRequest{
+		Prompt: "Hello",
+		System: "You are a helpful assistant.",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(receivedReq.Messages) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(receivedReq.Messages))
+	}
+	if receivedReq.Messages[0].Role != "system" {
+		t.Errorf("first message role = %q, want %q", receivedReq.Messages[0].Role, "system")
+	}
+	if receivedReq.Messages[0].Content != "You are a helpful assistant." {
+		t.Errorf("system content = %v, want %q", receivedReq.Messages[0].Content, "You are a helpful assistant.")
+	}
+}
+
+func TestChatModelGenerateWithToolCalls(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := ChatCompletionResponse{
+			ID:    "test-id",
+			Model: "gpt-4",
+			Choices: []Choice{
+				{
+					Index: 0,
+					Message: ChatMessage{
+						Role: "assistant",
+						ToolCalls: []ToolCall{
+							{
+								ID:   "call-123",
+								Type: "function",
+								Function: FunctionCallData{
+									Name:      "get_weather",
+									Arguments: `{"location": "Tokyo"}`,
+								},
+							},
+						},
+					},
+					FinishReason: "tool_calls",
+				},
+			},
+			Usage: Usage{TotalTokens: 20},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+	model := p.Model("gpt-4")
+
+	result, err := model.Generate(context.Background(), &provider.GenerateRequest{
+		Prompt: "What is the weather in Tokyo?",
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.FinishReason != provider.FinishReasonToolCalls {
+		t.Errorf("FinishReason = %q, want %q", result.FinishReason, provider.FinishReasonToolCalls)
+	}
+	if len(result.ToolCalls) != 1 {
+		t.Fatalf("expected 1 tool call, got %d", len(result.ToolCalls))
+	}
+	if result.ToolCalls[0].ID != "call-123" {
+		t.Errorf("ToolCall ID = %q, want %q", result.ToolCalls[0].ID, "call-123")
+	}
+	if result.ToolCalls[0].Name != "get_weather" {
+		t.Errorf("ToolCall Name = %q, want %q", result.ToolCalls[0].Name, "get_weather")
+	}
+}
+
+func TestChatModelGenerateError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error: ErrorDetail{
+				Message: "Incorrect API key provided",
+				Type:    "invalid_request_error",
+				Code:    "invalid_api_key",
+			},
+		})
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("invalid-key"), BaseURL(server.URL))
+	model := p.Model("gpt-4")
+
+	_, err := model.Generate(context.Background(), &provider.GenerateRequest{
+		Prompt: "Hello",
+	})
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	code := provider.ErrorCodeOf(err)
+	if code != provider.CodeAuthenticationFailed {
+		t.Errorf("error code = %v, want %v", code, provider.CodeAuthenticationFailed)
+	}
+}
+
+func TestEmbeddingModelEmbed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer test-key" {
+			t.Error("missing Authorization header")
+		}
+		if r.URL.Path != "/embeddings" {
+			t.Errorf("path = %q, want %q", r.URL.Path, "/embeddings")
+		}
+
+		resp := EmbeddingResponse{
+			Object: "list",
+			Model:  "text-embedding-3-small",
+			Data: []EmbeddingData{
+				{Object: "embedding", Index: 0, Embedding: []float64{0.1, 0.2, 0.3}},
+				{Object: "embedding", Index: 1, Embedding: []float64{0.4, 0.5, 0.6}},
+			},
+			Usage: Usage{
+				PromptTokens: 10,
+				TotalTokens:  10,
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+	model := p.Embedding("text-embedding-3-small")
+
+	result, err := model.Embed(context.Background(), &provider.EmbedRequest{
+		Texts: []string{"Hello", "World"},
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Embeddings) != 2 {
+		t.Fatalf("expected 2 embeddings, got %d", len(result.Embeddings))
+	}
+	if len(result.Embeddings[0]) != 3 {
+		t.Errorf("embedding[0] length = %d, want 3", len(result.Embeddings[0]))
+	}
+	if result.Usage.TotalTokens != 10 {
+		t.Errorf("TotalTokens = %d, want 10", result.Usage.TotalTokens)
+	}
+}
+
+func TestEmbeddingModelEmbedError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(ErrorResponse{
+			Error: ErrorDetail{
+				Message: "The model 'invalid-model' does not exist",
+				Type:    "invalid_request_error",
+			},
+		})
+	}))
+	defer server.Close()
+
+	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
+	model := p.Embedding("invalid-model")
+
+	_, err := model.Embed(context.Background(), &provider.EmbedRequest{
+		Texts: []string{"Hello"},
+	})
+
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	code := provider.ErrorCodeOf(err)
+	if code != provider.CodeModelNotFound {
+		t.Errorf("error code = %v, want %v", code, provider.CodeModelNotFound)
+	}
+}
+
+func TestMapFinishReason(t *testing.T) {
+	tests := []struct {
+		input string
+		want  provider.FinishReason
+	}{
+		{"stop", provider.FinishReasonStop},
+		{"length", provider.FinishReasonLength},
+		{"tool_calls", provider.FinishReasonToolCalls},
+		{"content_filter", provider.FinishReasonContentFilter},
+		{"unknown", provider.FinishReasonError},
+		{"", provider.FinishReasonError},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got := mapFinishReason(tt.input)
+			if got != tt.want {
+				t.Errorf("mapFinishReason(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConvertToolChoice(t *testing.T) {
+	tests := []struct {
+		name string
+		tc   provider.ToolChoice
+		want any
+	}{
+		{"auto", provider.ToolChoiceAuto(), "auto"},
+		{"none", provider.ToolChoiceNone(), "none"},
+		{"required", provider.ToolChoiceRequired(), "required"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := convertToolChoice(tt.tc)
+			if got != tt.want {
+				t.Errorf("convertToolChoice() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+	t.Run("named tool", func(t *testing.T) {
+		tc := provider.ToolChoiceNamed("get_weather")
+		got := convertToolChoice(tc)
+		m, ok := got.(map[string]any)
+		if !ok {
+			t.Fatalf("expected map, got %T", got)
+		}
+		fn, ok := m["function"].(map[string]string)
+		if !ok {
+			t.Fatalf("expected function map, got %T", m["function"])
+		}
+		if fn["name"] != "get_weather" {
+			t.Errorf("function name = %q, want %q", fn["name"], "get_weather")
+		}
+	})
+}

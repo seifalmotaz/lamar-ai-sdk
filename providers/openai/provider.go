@@ -164,30 +164,30 @@ func (p *Provider) Speech(id string, opts ...SpeechOption) provider.SpeechModel 
 	return NewSpeechModel(id, p, opts...)
 }
 
-// GPT4 returns a GPT-4 model.
-func (p *Provider) GPT4() provider.Generator {
-	return p.Model("gpt-4")
+// GPT5Mini returns a GPT-5-mini model with streaming support.
+func (p *Provider) GPT5Mini() provider.LanguageModel {
+	return p.StreamingModel("gpt-5-mini-2025-08-07")
 }
 
-// GPT4o returns a GPT-4o model with streaming support.
-func (p *Provider) GPT4o() provider.LanguageModel {
-	return p.StreamingModel("gpt-4o")
+// GPT51 returns a GPT-5.1 model with streaming support.
+func (p *Provider) GPT51() provider.LanguageModel {
+	return p.StreamingModel("gpt-5.1-2025-11-13")
 }
 
-// GPT4oMini returns a GPT-4o-mini model with streaming support.
-func (p *Provider) GPT4oMini() provider.LanguageModel {
-	return p.StreamingModel("gpt-4o-mini")
+// GPT52 returns a GPT-5.2 model with streaming support.
+func (p *Provider) GPT52() provider.LanguageModel {
+	return p.StreamingModel("gpt-5.2-2025-12-11")
+}
+
+// GPT54 returns a GPT-5.4 model with streaming support.
+func (p *Provider) GPT54() provider.LanguageModel {
+	return p.StreamingModel("gpt-5.4-2026-03-05")
 }
 
 // GPT4oAudioPreview returns a GPT-4o model with audio input support.
 // This model can process audio content in messages.
 func (p *Provider) GPT4oAudioPreview() provider.LanguageModel {
 	return p.StreamingModel("gpt-4o-audio-preview")
-}
-
-// GPT4Turbo returns a GPT-4-turbo model.
-func (p *Provider) GPT4Turbo() provider.Generator {
-	return p.Model("gpt-4-turbo")
 }
 
 // O1 returns an O1 model.
@@ -255,19 +255,24 @@ func (p *Provider) GPT4oMiniTTS(opts ...SpeechOption) provider.SpeechModel {
 	return p.Speech("gpt-4o-mini-tts", opts...)
 }
 
-// GPT4 creates a GPT-4 model using the default provider.
-func GPT4() provider.Generator {
-	return NewProvider().GPT4()
+// GPT5Mini creates a GPT-5-mini model using the default provider.
+func GPT5Mini() provider.LanguageModel {
+	return NewProvider().GPT5Mini()
 }
 
-// GPT4o creates a GPT-4o model using the default provider.
-func GPT4o() provider.Generator {
-	return NewProvider().GPT4o()
+// GPT51 creates a GPT-5.1 model using the default provider.
+func GPT51() provider.LanguageModel {
+	return NewProvider().GPT51()
 }
 
-// GPT4oMini creates a GPT-4o-mini model using the default provider.
-func GPT4oMini() provider.Generator {
-	return NewProvider().GPT4oMini()
+// GPT52 creates a GPT-5.2 model using the default provider.
+func GPT52() provider.LanguageModel {
+	return NewProvider().GPT52()
+}
+
+// GPT54 creates a GPT-5.4 model using the default provider.
+func GPT54() provider.LanguageModel {
+	return NewProvider().GPT54()
 }
 
 // GPT4oAudioPreview creates a GPT-4o-audio-preview model using the default provider.

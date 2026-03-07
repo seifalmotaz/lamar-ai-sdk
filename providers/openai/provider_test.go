@@ -27,9 +27,9 @@ func TestWithMiddleware_Streaming(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			flusher, _ := w.(http.Flusher)
 
-			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}\n\n"))
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-5.4-2026-03-05\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hello\"},\"finish_reason\":null}]}\n\n"))
 			flusher.Flush()
-			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":1,\"total_tokens\":6}}\n\n"))
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-5.4-2026-03-05\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":1,\"total_tokens\":6}}\n\n"))
 			flusher.Flush()
 			w.Write([]byte("data: [DONE]\n\n"))
 			flusher.Flush()
@@ -41,7 +41,7 @@ func TestWithMiddleware_Streaming(t *testing.T) {
 			BaseURL(server.URL),
 			WithMiddleware(testMiddleware),
 		)
-		model := p.StreamingModel("gpt-4")
+		model := p.StreamingModel("gpt-5.4-2026-03-05")
 
 		result, err := model.Stream(context.Background(), &provider.GenerateRequest{
 			Prompt: "Hello",
@@ -81,7 +81,7 @@ func TestWithMiddleware_Streaming(t *testing.T) {
 			BaseURL(server.URL),
 			WithMiddleware(middleware.TimeoutWithDefault(10*time.Millisecond)),
 		)
-		model := p.StreamingModel("gpt-4")
+		model := p.StreamingModel("gpt-5.4-2026-03-05")
 
 		start := time.Now()
 		_, err := model.Stream(context.Background(), &provider.GenerateRequest{
@@ -111,9 +111,9 @@ func TestWithMiddleware_Streaming(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			flusher, _ := w.(http.Flusher)
 
-			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}\n\n"))
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-5.4-2026-03-05\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Hi\"},\"finish_reason\":null}]}\n\n"))
 			flusher.Flush()
-			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-4\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"))
+			w.Write([]byte("data: {\"id\":\"test\",\"model\":\"gpt-5.4-2026-03-05\",\"choices\":[{\"index\":0,\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n"))
 			flusher.Flush()
 			w.Write([]byte("data: [DONE]\n\n"))
 			flusher.Flush()
@@ -121,7 +121,7 @@ func TestWithMiddleware_Streaming(t *testing.T) {
 		defer server.Close()
 
 		p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
-		model := p.StreamingModel("gpt-4")
+		model := p.StreamingModel("gpt-5.4-2026-03-05")
 
 		result, err := model.Stream(context.Background(), &provider.GenerateRequest{
 			Prompt: "Hello",
@@ -188,12 +188,12 @@ func TestProviderModelMethods(t *testing.T) {
 	p := NewProvider(APIKey("test-key"))
 
 	t.Run("Model", func(t *testing.T) {
-		m := p.Model("gpt-4")
+		m := p.Model("gpt-5.4-2026-03-05")
 		if m.Provider() != "openai" {
 			t.Errorf("Provider() = %q, want %q", m.Provider(), "openai")
 		}
-		if m.ModelID() != "gpt-4" {
-			t.Errorf("ModelID() = %q, want %q", m.ModelID(), "gpt-4")
+		if m.ModelID() != "gpt-5.4-2026-03-05" {
+			t.Errorf("ModelID() = %q, want %q", m.ModelID(), "gpt-5.4-2026-03-05")
 		}
 	})
 
@@ -216,16 +216,17 @@ func TestProviderConvenienceMethods(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		getModel func() provider.Generator
+		getModel func() provider.Model
 		wantID   string
 	}{
-		{"GPT4", p.GPT4, "gpt-4"},
-		{"GPT4o", func() provider.Generator { return p.GPT4o() }, "gpt-4o"},
-		{"GPT4oMini", func() provider.Generator { return p.GPT4oMini() }, "gpt-4o-mini"},
-		{"GPT4Turbo", p.GPT4Turbo, "gpt-4-turbo"},
-		{"O1", p.O1, "o1"},
-		{"O1Mini", p.O1Mini, "o1-mini"},
-		{"O1Preview", p.O1Preview, "o1-preview"},
+		{"GPT5Mini", func() provider.Model { return p.GPT5Mini() }, "gpt-5-mini-2025-08-07"},
+		{"GPT51", func() provider.Model { return p.GPT51() }, "gpt-5.1-2025-11-13"},
+		{"GPT52", func() provider.Model { return p.GPT52() }, "gpt-5.2-2025-12-11"},
+		{"GPT54", func() provider.Model { return p.GPT54() }, "gpt-5.4-2026-03-05"},
+		{"GPT4oAudioPreview", func() provider.Model { return p.GPT4oAudioPreview() }, "gpt-4o-audio-preview"},
+		{"O1", func() provider.Model { return p.O1() }, "o1"},
+		{"O1Mini", func() provider.Model { return p.O1Mini() }, "o1-mini"},
+		{"O1Preview", func() provider.Model { return p.O1Preview() }, "o1-preview"},
 	}
 
 	for _, tt := range tests {
@@ -241,14 +242,16 @@ func TestProviderConvenienceMethods(t *testing.T) {
 func TestPackageConvenienceFunctions(t *testing.T) {
 	tests := []struct {
 		name     string
-		getModel func() provider.Generator
+		getModel func() provider.Model
 		wantID   string
 	}{
-		{"GPT4", GPT4, "gpt-4"},
-		{"GPT4o", GPT4o, "gpt-4o"},
-		{"GPT4oMini", GPT4oMini, "gpt-4o-mini"},
-		{"O1", O1, "o1"},
-		{"O1Mini", O1Mini, "o1-mini"},
+		{"GPT5Mini", func() provider.Model { return GPT5Mini() }, "gpt-5-mini-2025-08-07"},
+		{"GPT51", func() provider.Model { return GPT51() }, "gpt-5.1-2025-11-13"},
+		{"GPT52", func() provider.Model { return GPT52() }, "gpt-5.2-2025-12-11"},
+		{"GPT54", func() provider.Model { return GPT54() }, "gpt-5.4-2026-03-05"},
+		{"GPT4oAudioPreview", func() provider.Model { return GPT4oAudioPreview() }, "gpt-4o-audio-preview"},
+		{"O1", func() provider.Model { return O1() }, "o1"},
+		{"O1Mini", func() provider.Model { return O1Mini() }, "o1-mini"},
 	}
 
 	for _, tt := range tests {
@@ -295,7 +298,7 @@ func TestChatModelGenerate(t *testing.T) {
 
 		resp := ChatCompletionResponse{
 			ID:    "test-id",
-			Model: "gpt-4",
+			Model: "gpt-5.4-2026-03-05",
 			Choices: []Choice{
 				{
 					Index: 0,
@@ -319,7 +322,7 @@ func TestChatModelGenerate(t *testing.T) {
 	defer server.Close()
 
 	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	result, err := model.Generate(context.Background(), &provider.GenerateRequest{
 		Prompt: "Hello",
@@ -349,7 +352,7 @@ func TestChatModelGenerateWithSystem(t *testing.T) {
 
 		resp := ChatCompletionResponse{
 			ID:    "test-id",
-			Model: "gpt-4",
+			Model: "gpt-5.4-2026-03-05",
 			Choices: []Choice{
 				{
 					Index: 0,
@@ -369,7 +372,7 @@ func TestChatModelGenerateWithSystem(t *testing.T) {
 	defer server.Close()
 
 	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	_, err := model.Generate(context.Background(), &provider.GenerateRequest{
 		Prompt: "Hello",
@@ -395,7 +398,7 @@ func TestChatModelGenerateWithToolCalls(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		resp := ChatCompletionResponse{
 			ID:    "test-id",
-			Model: "gpt-4",
+			Model: "gpt-5.4-2026-03-05",
 			Choices: []Choice{
 				{
 					Index: 0,
@@ -424,7 +427,7 @@ func TestChatModelGenerateWithToolCalls(t *testing.T) {
 	defer server.Close()
 
 	p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	result, err := model.Generate(context.Background(), &provider.GenerateRequest{
 		Prompt: "What is the weather in Tokyo?",
@@ -462,7 +465,7 @@ func TestChatModelGenerateError(t *testing.T) {
 	defer server.Close()
 
 	p := NewProvider(APIKey("invalid-key"), BaseURL(server.URL))
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	_, err := model.Generate(context.Background(), &provider.GenerateRequest{
 		Prompt: "Hello",
@@ -779,7 +782,7 @@ func TestWithMiddleware(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resp := ChatCompletionResponse{
 				ID:    "test-id",
-				Model: "gpt-4",
+				Model: "gpt-5.4-2026-03-05",
 				Choices: []Choice{
 					{
 						Index: 0,
@@ -802,7 +805,7 @@ func TestWithMiddleware(t *testing.T) {
 			BaseURL(server.URL),
 			WithMiddleware(testMiddleware),
 		)
-		model := p.Model("gpt-4")
+		model := p.Model("gpt-5.4-2026-03-05")
 
 		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
 			Prompt: "Hello",
@@ -863,7 +866,7 @@ func TestWithMiddleware(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
 			resp := ChatCompletionResponse{
 				ID:    "test-id",
-				Model: "gpt-4",
+				Model: "gpt-5.4-2026-03-05",
 				Choices: []Choice{
 					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
 				},
@@ -879,7 +882,7 @@ func TestWithMiddleware(t *testing.T) {
 			BaseURL(server.URL),
 			WithMiddleware(middleware.TimeoutWithDefault(10*time.Millisecond)),
 		)
-		model := p.Model("gpt-4")
+		model := p.Model("gpt-5.4-2026-03-05")
 
 		start := time.Now()
 		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
@@ -907,7 +910,7 @@ func TestWithMiddleware(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resp := ChatCompletionResponse{
 				ID:    "test-id",
-				Model: "gpt-4",
+				Model: "gpt-5.4-2026-03-05",
 				Choices: []Choice{
 					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
 				},
@@ -919,7 +922,7 @@ func TestWithMiddleware(t *testing.T) {
 		defer server.Close()
 
 		p := NewProvider(APIKey("test-key"), BaseURL(server.URL))
-		model := p.Model("gpt-4")
+		model := p.Model("gpt-5.4-2026-03-05")
 
 		result, err := model.Generate(context.Background(), &provider.GenerateRequest{
 			Prompt: "Hello",
@@ -956,7 +959,7 @@ func TestWithMiddleware(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resp := ChatCompletionResponse{
 				ID:    "test-id",
-				Model: "gpt-4",
+				Model: "gpt-5.4-2026-03-05",
 				Choices: []Choice{
 					{Index: 0, Message: ChatMessage{Role: "assistant", Content: "Response"}, FinishReason: "stop"},
 				},
@@ -972,7 +975,7 @@ func TestWithMiddleware(t *testing.T) {
 			BaseURL(server.URL),
 			WithMiddleware(middleware1, middleware2),
 		)
-		model := p.Model("gpt-4")
+		model := p.Model("gpt-5.4-2026-03-05")
 
 		_, err := model.Generate(context.Background(), &provider.GenerateRequest{
 			Prompt: "Hello",

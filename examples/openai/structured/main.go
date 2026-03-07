@@ -26,8 +26,8 @@ func main() {
 	}
 
 	client := openai.NewProvider(openai.APIKey(apiKey))
-	// GPT4o returns LanguageModel which supports both generate and stream
-	model := client.GPT4o()
+	// GPT5Mini returns LanguageModel which supports both generate and stream
+	model := client.GPT5Mini()
 
 	// Non-streaming structured output
 	fmt.Println("GenerateObject example:")

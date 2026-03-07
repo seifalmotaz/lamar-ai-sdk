@@ -60,7 +60,7 @@ func exampleContextCancellation() {
 	cancel() // Cancel immediately
 
 	client := openai.NewProvider(openai.APIKey("test-key"))
-	_, err := generate.Generate(ctx, client.GPT4o(), "Hello")
+	_, err := generate.Generate(ctx, client.GPT5Mini(), "Hello")
 
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
@@ -128,7 +128,7 @@ func exampleRateLimitHandling() {
 		Code:       provider.CodeRateLimited,
 		Message:    "Rate limit exceeded",
 		Provider:   "openai",
-		ModelID:    "gpt-4o",
+		ModelID:    "gpt-5-mini-2025-08-07",
 		RetryAfter: 30 * time.Second,
 	}
 

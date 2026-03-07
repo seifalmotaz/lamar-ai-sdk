@@ -89,7 +89,7 @@ func main() {
 	}
 
 	client := openai.NewProvider(openai.APIKey(apiKey))
-	model := client.GPT4o()
+	model := client.GPT5Mini()
 
 	fmt.Println("Middleware example:")
 	fmt.Println("===================")

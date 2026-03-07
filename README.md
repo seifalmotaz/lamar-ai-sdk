@@ -47,6 +47,7 @@ go get github.com/seifalmotaz/lamar-sdk
 ```
 
 **Requirements:**
+
 - Go 1.23 or later
 
 ---
@@ -68,7 +69,7 @@ import (
 func main() {
     // Initialize provider (uses OPENAI_API_KEY environment variable)
     client := openai.NewProvider()
-    model := client.GPT4o()
+    model := client.GPT5Mini()
 
     // Generate text with context
     ctx := context.Background()
@@ -238,14 +239,14 @@ import (
 
 func main() {
     client := openai.NewProvider()
-    model := client.GPT4o()
-    
+    model := client.GPT5Mini()
+
     ctx := context.Background()
     result, err := generate.Generate(ctx, model, "What is the capital of France?")
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Println(result.Text())
 }
 ```
@@ -256,24 +257,24 @@ func main() {
 result, err := generate.Generate(ctx, model, "prompt",
     // System prompt
     generate.System("You are a helpful assistant."),
-    
+
     // Model parameters
     generate.MaxTokens(1000),
     generate.Temperature(0.7),       // 0.0 to 2.0
     generate.TopP(0.9),              // 0.0 to 1.0
     generate.TopK(50),               // Top-K sampling
     generate.Seed(42),               // Deterministic sampling
-    
+
     // Stop sequences
     generate.StopSequences("END", "STOP"),
-    
+
     // Tools (function calling)
     generate.Tools(toolDefinitions...),
     generate.ToolChoice(provider.ToolChoiceAuto()),
-    
+
     // Response format
     generate.ResponseFormat(provider.ResponseFormatJSON()),
-    
+
     // Context and observability
     generate.WithTimeout(30*time.Second),
     generate.WithLogger(myLogger),
@@ -353,11 +354,11 @@ import "github.com/seifalmotaz/lamar-sdk/stream"
 
 func main() {
     client := openai.NewProvider()
-    model := client.GPT4o() // LanguageModel supports streaming
-    
+    model := client.GPT5Mini() // LanguageModel supports streaming
+
     ctx := context.Background()
     result := stream.Stream(ctx, model, "Tell me a short story")
-    
+
     // Consume stream in real-time
     for part := range result.Stream() {
         switch p := part.(type) {
@@ -393,7 +394,7 @@ go func() {
 // In another goroutine, wait for final result
 go func() {
     <-result.Done() // Wait for stream to complete
-    
+
     text, err := result.Text()
     if err != nil {
         panic(err)
@@ -477,17 +478,17 @@ type Product struct {
 
 **Available tags:**
 
-| Tag | Description | Example |
-|-----|-------------|---------|
-| `required` | Field is required | `jsonschema:"required"` |
-| `description` | Field description | `jsonschema:"description=The name"` |
-| `minimum` | Minimum value (numbers) | `jsonschema:"minimum=0"` |
-| `maximum` | Maximum value (numbers) | `jsonschema:"maximum=100"` |
-| `minLength` | Minimum string length | `jsonschema:"minLength=1"` |
-| `maxLength` | Maximum string length | `jsonschema:"maxLength=100"` |
-| `enum` | Enum values (repeatable) | `jsonschema:"enum=a,enum=b"` |
-| `minItems` | Minimum array items | `jsonschema:"minItems=1"` |
-| `maxItems` | Maximum array items | `jsonschema:"maxItems=10"` |
+| Tag           | Description              | Example                             |
+| ------------- | ------------------------ | ----------------------------------- |
+| `required`    | Field is required        | `jsonschema:"required"`             |
+| `description` | Field description        | `jsonschema:"description=The name"` |
+| `minimum`     | Minimum value (numbers)  | `jsonschema:"minimum=0"`            |
+| `maximum`     | Maximum value (numbers)  | `jsonschema:"maximum=100"`          |
+| `minLength`   | Minimum string length    | `jsonschema:"minLength=1"`          |
+| `maxLength`   | Maximum string length    | `jsonschema:"maxLength=100"`        |
+| `enum`        | Enum values (repeatable) | `jsonschema:"enum=a,enum=b"`        |
+| `minItems`    | Minimum array items      | `jsonschema:"minItems=1"`           |
+| `maxItems`    | Maximum array items      | `jsonschema:"maxItems=10"`          |
 
 ### Complex Nested Types
 
@@ -604,7 +605,7 @@ for _, tc := range result.ToolCalls() {
         if err != nil {
             panic(err)
         }
-        
+
         // Create tool result message
         toolResult := provider.NewToolResultContent(
             tc.ID,
@@ -612,14 +613,14 @@ for _, tc := range result.ToolCalls() {
             output,
             false, // not an error
         )
-        
+
         // Continue conversation with tool result
         messages := []provider.Message{
             provider.UserMessage("What's the weather in Tokyo?"),
             result.Message(), // Assistant's message with tool calls
             provider.ToolResultMessage(toolResult),
         }
-        
+
         // Get final response
         finalResult, err := generate.Generate(ctx, model, "",
             generate.Messages(messages...),
@@ -709,13 +710,13 @@ import "github.com/seifalmotaz/lamar-sdk/embed"
 func main() {
     client := openai.NewProvider()
     model := client.TextEmbedding3Small()
-    
+
     ctx := context.Background()
     result, err := embed.Embed(ctx, model, "Hello, world!")
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Printf("Embedding dimension: %d\n", len(result.Embedding))
     fmt.Printf("First 5 values: %v\n", result.Embedding[:5])
     fmt.Printf("Tokens used: %d\n", result.Usage.TotalTokens)
@@ -754,11 +755,11 @@ result, err := embed.Embed(ctx, model, text,
 
 ### Embedding Models
 
-| Model | Dimensions | Use Case |
-|-------|------------|----------|
-| `TextEmbedding3Small()` | 1536 | General purpose, cost-effective |
-| `TextEmbedding3Large()` | 3072 | Higher quality, larger vectors |
-| `TextEmbeddingAda002()` | 1536 | Legacy, GPT-3 era |
+| Model                   | Dimensions | Use Case                        |
+| ----------------------- | ---------- | ------------------------------- |
+| `TextEmbedding3Small()` | 1536       | General purpose, cost-effective |
+| `TextEmbedding3Large()` | 3072       | Higher quality, larger vectors  |
+| `TextEmbeddingAda002()` | 1536       | Legacy, GPT-3 era               |
 
 ---
 
@@ -829,7 +830,7 @@ msg := provider.UserMessageWithContent(
 
 ```go
 client := openai.NewProvider()
-model := client.GPT4o() // GPT-4o supports vision
+model := client.GPT5Mini() // GPT-5 supports vision
 
 imageData, _ := os.ReadFile("photo.jpg")
 msg := provider.UserMessageWithContent(
@@ -846,7 +847,7 @@ result, err := generate.Generate(ctx, model, "",
 
 ```go
 client := openai.NewProvider()
-model := client.GPT4oAudioPreview() // Audio-capable model
+model := client.GPT4oAudioPreview() // GPT-4o supports audio
 
 audioData, _ := os.ReadFile("recording.mp3")
 messages := []provider.Message{
@@ -894,13 +895,13 @@ import "github.com/seifalmotaz/lamar-sdk/image"
 func main() {
     client := openai.NewProvider()
     model := client.DALLE3()
-    
+
     ctx := context.Background()
     result, err := image.Generate(ctx, model, "A serene mountain landscape at sunset")
     if err != nil {
         panic(err)
     }
-    
+
     // Save the generated image
     for i, imgData := range result.Images {
         filename := fmt.Sprintf("generated_%d.png", i)
@@ -923,10 +924,10 @@ result, err := image.Generate(ctx, model, "prompt",
 
 ### Image Models
 
-| Model | Method | Notes |
-|-------|--------|-------|
-| DALL-E 2 | `DALLE2()` | Supports N > 1, smaller sizes |
-| DALL-E 3 | `DALLE3()` | Higher quality, HD option |
+| Model       | Method        | Notes                             |
+| ----------- | ------------- | --------------------------------- |
+| DALL-E 2    | `DALLE2()`    | Supports N > 1, smaller sizes     |
+| DALL-E 3    | `DALLE3()`    | Higher quality, HD option         |
 | GPT Image 1 | `GPTImage1()` | Latest model with editing support |
 
 ### Working with Results
@@ -960,13 +961,13 @@ import "github.com/seifalmotaz/lamar-sdk/speech"
 func main() {
     client := openai.NewProvider()
     model := client.TTS1()
-    
+
     ctx := context.Background()
     result, err := speech.Synthesize(ctx, model, "Hello, this is a test.")
     if err != nil {
         panic(err)
     }
-    
+
     // Save the audio
     os.WriteFile("output.mp3", result.Audio, 0644)
 }
@@ -986,10 +987,10 @@ result, err := speech.Synthesize(ctx, model, "text to speak",
 
 ### Speech Models
 
-| Model | Method | Notes |
-|-------|--------|-------|
-| TTS-1 | `TTS1()` | Standard quality, faster |
-| TTS-1-HD | `TTS1HD()` | Higher quality |
+| Model           | Method           | Notes                                  |
+| --------------- | ---------------- | -------------------------------------- |
+| TTS-1           | `TTS1()`         | Standard quality, faster               |
+| TTS-1-HD        | `TTS1HD()`       | Higher quality                         |
 | GPT-4o-Mini-TTS | `GPT4oMiniTTS()` | Latest model with instructions support |
 
 ### Available Voices
@@ -997,7 +998,7 @@ result, err := speech.Synthesize(ctx, model, "text to speak",
 - `alloy` - Neutral, balanced
 - `echo` - Warm, conversational
 - `fable` - British accent
-- `onyx` - Deep, authoritative  
+- `onyx` - Deep, authoritative
 - `nova` - Friendly, upbeat
 - `shimmer` - Soft, gentle
 
@@ -1013,15 +1014,15 @@ import "github.com/seifalmotaz/lamar-sdk/transcription"
 func main() {
     client := openai.NewProvider()
     model := client.Whisper1()
-    
+
     audioData, _ := os.ReadFile("recording.mp3")
-    
+
     ctx := context.Background()
     result, err := transcription.Transcribe(ctx, model, audioData, "audio/mp3")
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Println("Transcription:", result.Text)
     fmt.Println("Language:", result.Language)
     fmt.Println("Duration:", result.Duration)
@@ -1090,7 +1091,7 @@ timeoutMW := middleware.Timeout(middleware.TimeoutConfig{
     },
     PerModel: map[string]time.Duration{
         "o1-preview": 120 * time.Second,
-        "gpt-4":      30 * time.Second,
+        "gpt-5-mini-2025-08-07": 30 * time.Second,
     },
 })
 ```
@@ -1202,14 +1203,14 @@ func CustomMiddleware(name string) middleware.Middleware {
             // Pre-processing
             start := time.Now()
             log.Printf("[%s] Starting request to %s/%s", name, req.Provider(), req.ModelID())
-            
+
             // Call next handler
             resp, err := next.Handle(ctx, req)
-            
+
             // Post-processing
             duration := time.Since(start)
             log.Printf("[%s] Completed in %v", name, duration)
-            
+
             return resp, err
         })
     }
@@ -1246,14 +1247,14 @@ import "github.com/seifalmotaz/lamar-sdk/agent"
 
 func main() {
     client := openai.NewProvider()
-    model := client.GPT4o()
-    
+    model := client.GPT5Mini()
+
     // Create an agent with tools
     ag := agent.New(model,
         agent.WithTools(weatherTool, calculatorTool),
         agent.WithStopWhen(agent.StepCountIs(10)),
     )
-    
+
     // Run synchronously
     result, err := ag.Invoke(ctx,
         agent.WithMessages(
@@ -1263,7 +1264,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    
+
     fmt.Println(result.FinalText)
     fmt.Printf("Steps: %d, Tokens: %d\n", len(result.Steps), result.TotalUsage.TotalTokens)
 }
@@ -1338,23 +1339,23 @@ agent.New(model, agent.WithStopWhen(
 ag := agent.New(model,
     // Tools available to the agent
     agent.WithTools(weatherTool, calculatorTool),
-    
+
     // Stop conditions
     agent.WithStopWhen(agent.StepCountIs(10)),
-    
+
     // System prompt
     agent.WithSystem("You are a helpful assistant."),
-    
+
     // Tool choice strategy
     agent.WithToolChoice(provider.ToolChoiceAuto()),
-    
+
     // Model parameters
     agent.WithTemperature(0.7),
     agent.WithMaxTokens(1000),
-    
+
     // Max retries on transient errors
     agent.WithMaxRetries(3),
-    
+
     // Callbacks for observability
     agent.WithCallbacks(agent.Callbacks{
         OnStepStart: func(ctx context.Context, stepNumber int, messages []provider.Message) error {
@@ -1388,14 +1389,14 @@ ag := agent.New(model,
                 Tools: fewerTools,
             }
         }
-        
+
         // Change behavior based on last tool calls
         if len(p.ToolCalls) > 0 && p.ToolCalls[0].Name == "search" {
             return &agent.PrepareStepResult{
                 System: ptr("Focus on summarizing the search results."),
             }
         }
-        
+
         return nil // No changes
     }),
 )
@@ -1412,13 +1413,13 @@ callbacks := agent.Callbacks{
         log.Printf("Starting with %d messages", len(messages))
         return nil
     },
-    
+
     // Called before each step
     OnStepStart: func(ctx context.Context, stepNumber int, messages []provider.Message) error {
         log.Printf("Step %d starting with %d messages", stepNumber, len(messages))
         return nil
     },
-    
+
     // Called after each step completes
     OnStepFinish: func(ctx context.Context, result agent.StepResult) error {
         log.Printf("Step %d: %d tool calls, %d tokens, %v",
@@ -1429,13 +1430,13 @@ callbacks := agent.Callbacks{
         )
         return nil
     },
-    
+
     // Called before tool execution
     OnToolCallStart: func(ctx context.Context, tc provider.ToolCall) error {
         log.Printf("Executing tool: %s", tc.Name)
         return nil
     },
-    
+
     // Called after tool execution
     OnToolCallFinish: func(ctx context.Context, result agent.ToolExecutionResult) error {
         if result.Error != nil {
@@ -1445,7 +1446,7 @@ callbacks := agent.Callbacks{
         }
         return nil
     },
-    
+
     // Called when agent completes successfully
     OnFinish: func(ctx context.Context, result *agent.Result) error {
         log.Printf("Agent finished: %d steps, %d total tokens",
@@ -1454,7 +1455,7 @@ callbacks := agent.Callbacks{
         )
         return nil
     },
-    
+
     // Called on errors - return nil to suppress and continue
     OnError: func(ctx context.Context, stepNumber int, err error) error {
         log.Printf("Step %d error: %v", stepNumber, err)
@@ -1496,7 +1497,7 @@ for _, step := range result.Steps {
     fmt.Printf("  Tokens: %d\n", step.Usage.TotalTokens)
     fmt.Printf("  Duration: %v\n", step.Duration)
     fmt.Printf("  Finish reason: %s\n", step.FinishReason)
-    
+
     for _, tr := range step.ToolResults {
         fmt.Printf("  Tool %s: %v\n", tr.ToolName, tr.Output)
     }
@@ -1561,22 +1562,22 @@ type Error struct {
 
 ### Error Codes
 
-| Code | Constant | Description |
-|------|----------|-------------|
-| 0 | `CodeUnknown` | Unspecified error |
-| 1 | `CodeInvalidRequest` | Malformed request |
-| 2 | `CodeInvalidModel` | Nil/invalid model |
-| 3 | `CodeInvalidPrompt` | Empty prompt |
-| 4 | `CodeInvalidInput` | Invalid input data |
-| 5 | `CodeAuthenticationFailed` | Auth failure |
-| 6 | `CodeRateLimited` | Rate limit exceeded |
-| 7 | `CodeModelNotFound` | Model doesn't exist |
-| 8 | `CodeContentFiltered` | Content filtered by safety |
-| 9 | `CodeContextCanceled` | Context canceled |
-| 10 | `CodeAPITimeout` | API timeout |
-| 11 | `CodeParseError` | Response parse failure |
-| 12 | `CodeUnsupportedModel` | Unsupported model |
-| 13 | `CodeUnsupportedOperation` | Unsupported operation |
+| Code | Constant                   | Description                |
+| ---- | -------------------------- | -------------------------- |
+| 0    | `CodeUnknown`              | Unspecified error          |
+| 1    | `CodeInvalidRequest`       | Malformed request          |
+| 2    | `CodeInvalidModel`         | Nil/invalid model          |
+| 3    | `CodeInvalidPrompt`        | Empty prompt               |
+| 4    | `CodeInvalidInput`         | Invalid input data         |
+| 5    | `CodeAuthenticationFailed` | Auth failure               |
+| 6    | `CodeRateLimited`          | Rate limit exceeded        |
+| 7    | `CodeModelNotFound`        | Model doesn't exist        |
+| 8    | `CodeContentFiltered`      | Content filtered by safety |
+| 9    | `CodeContextCanceled`      | Context canceled           |
+| 10   | `CodeAPITimeout`           | API timeout                |
+| 11   | `CodeParseError`           | Response parse failure     |
+| 12   | `CodeUnsupportedModel`     | Unsupported model          |
+| 13   | `CodeUnsupportedOperation` | Unsupported operation      |
 
 ### Error Checking
 
@@ -1596,43 +1597,43 @@ if err != nil {
         fmt.Printf("Provider: %s\n", providerErr.Provider)
         fmt.Printf("Model: %s\n", providerErr.ModelID)
         fmt.Printf("HTTP Status: %d\n", providerErr.StatusCode)
-        
+
         if providerErr.RetryAfter > 0 {
             fmt.Printf("Retry after: %v\n", providerErr.RetryAfter)
         }
-        
+
         if providerErr.Cause != nil {
             fmt.Printf("Cause: %v\n", providerErr.Cause)
         }
     }
-    
+
     // Method 2: Helper functions
     if provider.IsRateLimited(err) {
         retryAfter := provider.RetryAfter(err)
         time.Sleep(retryAfter)
         // Retry the request
     }
-    
+
     if provider.IsTimeout(err) {
         // Handle timeout
     }
-    
+
     if provider.IsContextCanceled(err) {
         // User canceled
     }
-    
+
     if provider.IsAuthenticationError(err) {
         // Check API key
     }
-    
+
     if provider.IsNotFoundError(err) {
         // Model doesn't exist
     }
-    
+
     if provider.IsInvalidInput(err) {
         // Invalid parameters
     }
-    
+
     if provider.IsContentFiltered(err) {
         // Content was filtered
     }
@@ -1641,17 +1642,17 @@ if err != nil {
 
 ### Helper Functions
 
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `IsRateLimited(err)` | `bool` | Check for rate limit error |
-| `RetryAfter(err)` | `time.Duration` | Get retry delay |
-| `IsTimeout(err)` | `bool` | Check for timeout |
-| `IsContextCanceled(err)` | `bool` | Check for cancellation |
-| `IsAuthenticationError(err)` | `bool` | Check auth failure |
-| `IsNotFoundError(err)` | `bool` | Check model not found |
-| `IsInvalidInput(err)` | `bool` | Check invalid input |
-| `IsContentFiltered(err)` | `bool` | Check content filter |
-| `ErrorCodeOf(err)` | `ErrorCode` | Get error code |
+| Function                     | Returns         | Description                |
+| ---------------------------- | --------------- | -------------------------- |
+| `IsRateLimited(err)`         | `bool`          | Check for rate limit error |
+| `RetryAfter(err)`            | `time.Duration` | Get retry delay            |
+| `IsTimeout(err)`             | `bool`          | Check for timeout          |
+| `IsContextCanceled(err)`     | `bool`          | Check for cancellation     |
+| `IsAuthenticationError(err)` | `bool`          | Check auth failure         |
+| `IsNotFoundError(err)`       | `bool`          | Check model not found      |
+| `IsInvalidInput(err)`        | `bool`          | Check invalid input        |
+| `IsContentFiltered(err)`     | `bool`          | Check content filter       |
+| `ErrorCodeOf(err)`           | `ErrorCode`     | Get error code             |
 
 ### Sentinel Errors
 
@@ -1684,21 +1685,21 @@ if errors.Is(err, provider.ErrRateLimited) {
 func generateWithRetry(ctx context.Context, model provider.Generator, prompt string) (*generate.Result, error) {
     maxRetries := 3
     baseDelay := time.Second
-    
+
     for attempt := 0; attempt < maxRetries; attempt++ {
         result, err := generate.Generate(ctx, model, prompt)
         if err == nil {
             return result, nil
         }
-        
+
         // Don't retry on non-retryable errors
-        if provider.IsAuthenticationError(err) || 
+        if provider.IsAuthenticationError(err) ||
            provider.IsNotFoundError(err) ||
            provider.IsInvalidInput(err) ||
            provider.IsContentFiltered(err) {
             return nil, err
         }
-        
+
         // Check for rate limit
         if provider.IsRateLimited(err) {
             delay := provider.RetryAfter(err)
@@ -1712,22 +1713,22 @@ func generateWithRetry(ctx context.Context, model provider.Generator, prompt str
                 return nil, ctx.Err()
             }
         }
-        
+
         // Check for timeout
         if provider.IsTimeout(err) {
             if attempt < maxRetries-1 {
                 continue
             }
         }
-        
+
         // Check for context cancellation
         if provider.IsContextCanceled(err) {
             return nil, err
         }
-        
+
         return nil, err
     }
-    
+
     return nil, fmt.Errorf("max retries exceeded")
 }
 ```
@@ -1839,7 +1840,7 @@ type ToolResultContent struct {
 tr := provider.NewToolResultContent("call_123", "get_weather", json.RawMessage(`{"temp":22}`), false)
 
 // Constructor from any value
-tr := provider.NewToolResultContentFromJSON("call_123", "get_weather", 
+tr := provider.NewToolResultContentFromJSON("call_123", "get_weather",
     WeatherOutput{Temperature: 22.5}, false)
 ```
 
@@ -1912,7 +1913,7 @@ Base interface for all models:
 ```go
 type Model interface {
     Provider() string  // Provider name (e.g., "openai")
-    ModelID() string   // Model identifier (e.g., "gpt-4o")
+    ModelID() string   // Model identifier (e.g., "gpt-5-mini-2025-08-07")
 }
 ```
 
@@ -2019,14 +2020,14 @@ func GetModelInfo(m Model) (ModelInfo, bool)
 ```go
 func useModel(ctx context.Context, m provider.Model) {
     fmt.Printf("Provider: %s, Model: %s\n", m.Provider(), m.ModelID())
-    
+
     // Check capabilities
     if provider.CanGenerate(m) {
         gen := m.(provider.Generator)
         result, _ := gen.Generate(ctx, &provider.GenerateRequest{Prompt: "Hello"})
         fmt.Println(result.Text)
     }
-    
+
     if provider.CanStream(m) {
         streamer := m.(provider.Streamer)
         result, _ := streamer.Stream(ctx, &provider.GenerateRequest{Prompt: "Hello"})
@@ -2034,12 +2035,12 @@ func useModel(ctx context.Context, m provider.Model) {
             // Consume stream
         }
     }
-    
+
     if provider.IsLanguageModel(m) {
         lm := m.(provider.LanguageModel)
         // Can use both Generate and Stream
     }
-    
+
     if provider.CanEmbed(m) {
         emb := m.(provider.EmbeddingModel)
         result, _ := emb.Embed(ctx, &provider.EmbedRequest{Texts: []string{"Hello"}})
@@ -2132,20 +2133,20 @@ func NewProvider(opts ...Option) *Provider {
     p := &Provider{
         baseURL: DefaultBaseURL,
     }
-    
+
     // Create default HTTP client
     p.client = httpx.NewClient(p.baseURL, http.DefaultClient)
-    
+
     // Apply options
     for _, opt := range opts {
         opt(p)
     }
-    
+
     // Set API key from environment if not provided
     if apiKey := os.Getenv("YOURPROVIDER_API_KEY"); apiKey != "" {
         p.client.SetHeader("Authorization", "Bearer "+apiKey)
     }
-    
+
     return p
 }
 ```
@@ -2191,7 +2192,7 @@ package yourprovider
 import (
     "context"
     "encoding/json"
-    
+
     "github.com/seifalmotaz/lamar-sdk/provider"
 )
 
@@ -2218,13 +2219,13 @@ func (m *ChatModel) Generate(ctx context.Context, req *provider.GenerateRequest)
         if err != nil {
             return nil, err
         }
-        
+
         // 2. Make API call
         var apiResp APIResponse
         if err := m.provider.client.Post(ctx, "/chat/completions", apiReq, &apiResp); err != nil {
             return nil, m.mapError(err)
         }
-        
+
         // 3. Convert response to SDK format
         return m.buildResult(&apiResp)
     })
@@ -2234,7 +2235,7 @@ func (m *ChatModel) buildAPIRequest(req *provider.GenerateRequest) (*APIRequest,
     apiReq := &APIRequest{
         Model: m.id,
     }
-    
+
     // Handle prompt
     if req.Prompt != "" {
         apiReq.Messages = append(apiReq.Messages, APIMessage{
@@ -2242,7 +2243,7 @@ func (m *ChatModel) buildAPIRequest(req *provider.GenerateRequest) (*APIRequest,
             Content: req.Prompt,
         })
     }
-    
+
     // Handle messages
     for _, msg := range req.Messages {
         apiMsg, err := m.convertMessage(msg)
@@ -2251,7 +2252,7 @@ func (m *ChatModel) buildAPIRequest(req *provider.GenerateRequest) (*APIRequest,
         }
         apiReq.Messages = append(apiReq.Messages, apiMsg)
     }
-    
+
     // Handle system prompt
     if req.Config.System != "" {
         apiReq.Messages = append([]APIMessage{{
@@ -2259,7 +2260,7 @@ func (m *ChatModel) buildAPIRequest(req *provider.GenerateRequest) (*APIRequest,
             Content: req.Config.System,
         }}, apiReq.Messages...)
     }
-    
+
     // Handle config
     if req.Config.MaxTokens > 0 {
         apiReq.MaxTokens = req.Config.MaxTokens
@@ -2271,13 +2272,13 @@ func (m *ChatModel) buildAPIRequest(req *provider.GenerateRequest) (*APIRequest,
         apiReq.Tools = m.convertTools(req.Config.Tools)
         apiReq.ToolChoice = m.convertToolChoice(req.Config.ToolChoice)
     }
-    
+
     return apiReq, nil
 }
 
 func (m *ChatModel) convertMessage(msg provider.Message) (APIMessage, error) {
     apiMsg := APIMessage{Role: string(msg.Role)}
-    
+
     // Handle content
     if len(msg.Content) == 1 {
         if text, ok := msg.Content[0].(provider.TextContent); ok {
@@ -2285,7 +2286,7 @@ func (m *ChatModel) convertMessage(msg provider.Message) (APIMessage, error) {
             return apiMsg, nil
         }
     }
-    
+
     // Handle multimodal content
     var contents []APIContent
     for _, c := range msg.Content {
@@ -2299,7 +2300,7 @@ func (m *ChatModel) convertMessage(msg provider.Message) (APIMessage, error) {
             contents = append(contents, APIContent{
                 Type: "image_url",
                 ImageURL: &APIImageURL{
-                    URL: "data:" + content.MediaType + ";base64," + 
+                    URL: "data:" + content.MediaType + ";base64," +
                          base64.StdEncoding.EncodeToString(content.Data),
                 },
             })
@@ -2318,11 +2319,11 @@ func (m *ChatModel) convertMessage(msg provider.Message) (APIMessage, error) {
             apiMsg.Content = string(content.Result)
         }
     }
-    
+
     if len(contents) > 0 {
         apiMsg.Content = contents
     }
-    
+
     return apiMsg, nil
 }
 
@@ -2330,9 +2331,9 @@ func (m *ChatModel) buildResult(apiResp *APIResponse) (*provider.GenerateResult,
     if len(apiResp.Choices) == 0 {
         return nil, provider.NewError(provider.CodeParseError, "no choices in response", nil)
     }
-    
+
     choice := apiResp.Choices[0]
-    
+
     result := &provider.GenerateResult{
         Text:         choice.Message.Content,
         FinishReason: m.mapFinishReason(choice.FinishReason),
@@ -2342,12 +2343,12 @@ func (m *ChatModel) buildResult(apiResp *APIResponse) (*provider.GenerateResult,
             TotalTokens:      apiResp.Usage.TotalTokens,
         },
     }
-    
+
     // Handle content
     if choice.Message.Content != "" {
         result.Content = append(result.Content, provider.Text(choice.Message.Content))
     }
-    
+
     // Handle tool calls
     for _, tc := range choice.Message.ToolCalls {
         result.ToolCalls = append(result.ToolCalls, provider.ToolCall{
@@ -2359,7 +2360,7 @@ func (m *ChatModel) buildResult(apiResp *APIResponse) (*provider.GenerateResult,
             tc.ID, tc.Function.Name, json.RawMessage(tc.Function.Arguments),
         ))
     }
-    
+
     return result, nil
 }
 
@@ -2389,7 +2390,7 @@ import (
     "context"
     "encoding/json"
     "io"
-    
+
     "github.com/seifalmotaz/lamar-sdk/internal/sse"
     "github.com/seifalmotaz/lamar-sdk/provider"
 )
@@ -2402,32 +2403,32 @@ func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (
             return nil, err
         }
         apiReq.Stream = true
-        
+
         // 2. Open streaming connection
         rc, err := m.provider.client.DoStream(ctx, "POST", "/chat/completions", apiReq)
         if err != nil {
             return nil, m.mapError(err)
         }
-        
+
         // 3. Set up channels
         stream := make(chan provider.StreamPart, 100)
         done := make(chan struct{})
-        
+
         result := &provider.StreamResult{
             Stream: stream,
             Done:   done,
         }
-        
+
         // 4. Process stream in goroutine
         go func() {
             defer close(stream)
             defer close(done)
             defer rc.Close()
-            
+
             reader := sse.NewReader(rc)
             var usage provider.Usage
             var finishReason provider.FinishReason
-            
+
             for {
                 event, err := reader.ReadEvent()
                 if err != nil {
@@ -2441,19 +2442,19 @@ func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (
                     stream <- provider.StreamErrorPart{Error: err}
                     break
                 }
-                
+
                 // Skip non-data events
                 if event.Type != "data" {
                     continue
                 }
-                
+
                 // Parse the event data
                 var streamResp APIStreamResponse
                 if err := json.Unmarshal(event.Data, &streamResp); err != nil {
                     stream <- provider.StreamErrorPart{Error: err}
                     continue
                 }
-                
+
                 // Process choices
                 for _, choice := range streamResp.Choices {
                     if choice.Delta.Content != "" {
@@ -2476,7 +2477,7 @@ func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (
                         finishReason = m.mapFinishReason(choice.FinishReason)
                     }
                 }
-                
+
                 // Capture usage
                 if streamResp.Usage.TotalTokens > 0 {
                     usage = provider.Usage{
@@ -2487,7 +2488,7 @@ func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (
                 }
             }
         }()
-        
+
         return result, nil
     })
 }
@@ -2504,7 +2505,7 @@ func (p *Provider) mapError(err error) *provider.Error {
     if errors.As(err, &providerErr) {
         return providerErr
     }
-    
+
     // Check for HTTP errors
     var httpErr *httpx.Error
     if errors.As(err, &httpErr) {
@@ -2521,7 +2522,7 @@ func (p *Provider) mapError(err error) *provider.Error {
         case 500, 502, 503, 504:
             code = provider.CodeAPITimeout
         }
-        
+
         return &provider.Error{
             Code:       code,
             Message:    httpErr.Message,
@@ -2531,7 +2532,7 @@ func (p *Provider) mapError(err error) *provider.Error {
             RetryAfter: parseRetryAfter(httpErr.Header),
         }
     }
-    
+
     return &provider.Error{
         Code:     provider.CodeUnknown,
         Message:  err.Error(),
@@ -2545,17 +2546,17 @@ func parseRetryAfter(header http.Header) time.Duration {
     if val == "" {
         return 0
     }
-    
+
     // Try parsing as seconds
     if secs, err := strconv.Atoi(val); err == nil {
         return time.Duration(secs) * time.Second
     }
-    
+
     // Try parsing as date
     if t, err := http.ParseTime(val); err == nil {
         return time.Until(t)
     }
-    
+
     return 0
 }
 ```
@@ -2571,7 +2572,7 @@ func (p *Provider) wrapGenerate(ctx context.Context, modelID string, req *provid
     if len(p.middlewares) == 0 {
         return core(ctx, req)
     }
-    
+
     handler := middleware.Chain(p.middlewares...)(middleware.HandlerFunc(
         func(ctx context.Context, r middleware.Request) (middleware.Response, error) {
             result, err := core(ctx, req)
@@ -2587,7 +2588,7 @@ func (p *Provider) wrapGenerate(ctx context.Context, modelID string, req *provid
             }, nil
         },
     ))
-    
+
     mwReq := &middleware.GenerateRequest{
         ProviderName: "yourprovider",
         Model:        modelID,
@@ -2595,12 +2596,12 @@ func (p *Provider) wrapGenerate(ctx context.Context, modelID string, req *provid
         Messages:     req.Messages,
         Config:       req.Config,
     }
-    
+
     resp, err := handler.Handle(ctx, mwReq)
     if err != nil {
         return nil, err
     }
-    
+
     genResp := resp.(*middleware.GenerateResponse)
     return &provider.GenerateResult{
         Text:         genResp.Text,
@@ -2626,7 +2627,7 @@ import (
     "net/http"
     "net/http/httptest"
     "testing"
-    
+
     "github.com/seifalmotaz/lamar-sdk/provider"
 )
 
@@ -2637,7 +2638,7 @@ func TestChatModelGenerate(t *testing.T) {
         if r.Header.Get("Authorization") != "Bearer test-key" {
             t.Error("missing authorization header")
         }
-        
+
         // Return mock response
         resp := APIResponse{
             Choices: []APIChoice{{
@@ -2657,14 +2658,14 @@ func TestChatModelGenerate(t *testing.T) {
         json.NewEncoder(w).Encode(resp)
     }))
     defer server.Close()
-    
+
     // Create provider
     p := NewProvider(
         APIKey("test-key"),
         BaseURL(server.URL),
     )
     model := p.Model("test-model")
-    
+
     // Test generate
     ctx := context.Background()
     result, err := model.Generate(ctx, &provider.GenerateRequest{
@@ -2673,11 +2674,11 @@ func TestChatModelGenerate(t *testing.T) {
     if err != nil {
         t.Fatalf("unexpected error: %v", err)
     }
-    
+
     if result.Text != "Hello, world!" {
         t.Errorf("Text = %q, want %q", result.Text, "Hello, world!")
     }
-    
+
     if result.Usage.TotalTokens != 15 {
         t.Errorf("TotalTokens = %d, want %d", result.Usage.TotalTokens, 15)
     }
@@ -2753,52 +2754,52 @@ client := openai.NewProvider(
 
 ### Chat Models
 
-| Method | Returns | Model ID | Notes |
-|--------|---------|----------|-------|
-| `GPT4o()` | `LanguageModel` | `gpt-4o` | Latest multimodal |
-| `GPT4oMini()` | `LanguageModel` | `gpt-4o-mini` | Fast, cost-effective |
-| `GPT4oAudioPreview()` | `LanguageModel` | `gpt-4o-audio-preview` | Audio input/output |
-| `GPT4Turbo()` | `Generator` | `gpt-4-turbo` | GPT-4 Turbo |
-| `GPT4()` | `Generator` | `gpt-4` | Original GPT-4 |
-| `O1()` | `Generator` | `o1` | Reasoning model |
-| `O1Mini()` | `Generator` | `o1-mini` | Fast reasoning |
-| `O1Preview()` | `Generator` | `o1-preview` | Preview reasoning |
-| `Model(id)` | `Generator` | custom | Any model ID |
-| `StreamingModel(id)` | `LanguageModel` | custom | With streaming |
+| Method                | Returns         | Model ID                | Notes                |
+| --------------------- | --------------- | ----------------------- | -------------------- |
+| `GPT5Mini()`          | `LanguageModel` | `gpt-5-mini-2025-08-07` | Fast, cost-effective |
+| `GPT51()`             | `LanguageModel` | `gpt-5.1-2025-11-13`    | Balanced model       |
+| `GPT52()`             | `LanguageModel` | `gpt-5.2-2025-12-11`    | Advanced model       |
+| `GPT54()`             | `LanguageModel` | `gpt-5.4-2026-03-05`    | Latest model         |
+| `GPT4oAudioPreview()` | `LanguageModel` | `gpt-4o-audio-preview`  | Audio input/output   |
+| `O1()`                | `Generator`     | `o1`                    | Reasoning model      |
+| `O1Mini()`            | `Generator`     | `o1-mini`               | Fast reasoning       |
+| `O1Preview()`         | `Generator`     | `o1-preview`            | Preview reasoning    |
+| `Model(id)`           | `Generator`     | custom                  | Any model ID         |
+| `StreamingModel(id)`  | `LanguageModel` | custom                  | With streaming       |
 
 ### Embedding Models
 
-| Method | Returns | Model ID | Dimensions |
-|--------|---------|----------|------------|
-| `TextEmbedding3Small()` | `EmbeddingModel` | `text-embedding-3-small` | 1536 |
-| `TextEmbedding3Large()` | `EmbeddingModel` | `text-embedding-3-large` | 3072 |
-| `TextEmbeddingAda002()` | `EmbeddingModel` | `text-embedding-ada-002` | 1536 |
-| `Embedding(id)` | `EmbeddingModel` | custom | Varies |
+| Method                  | Returns          | Model ID                 | Dimensions |
+| ----------------------- | ---------------- | ------------------------ | ---------- |
+| `TextEmbedding3Small()` | `EmbeddingModel` | `text-embedding-3-small` | 1536       |
+| `TextEmbedding3Large()` | `EmbeddingModel` | `text-embedding-3-large` | 3072       |
+| `TextEmbeddingAda002()` | `EmbeddingModel` | `text-embedding-ada-002` | 1536       |
+| `Embedding(id)`         | `EmbeddingModel` | custom                   | Varies     |
 
 ### Image Models
 
-| Method | Returns | Model ID | Notes |
-|--------|---------|----------|-------|
-| `DALLE2()` | `ImageModel` | `dall-e-2` | Multiple images |
-| `DALLE3()` | `ImageModel` | `dall-e-3` | Higher quality |
-| `GPTImage1()` | `ImageModel` | `gpt-image-1` | Latest model |
-| `Image(id)` | `ImageModel` | custom | Any model ID |
+| Method        | Returns      | Model ID      | Notes           |
+| ------------- | ------------ | ------------- | --------------- |
+| `DALLE2()`    | `ImageModel` | `dall-e-2`    | Multiple images |
+| `DALLE3()`    | `ImageModel` | `dall-e-3`    | Higher quality  |
+| `GPTImage1()` | `ImageModel` | `gpt-image-1` | Latest model    |
+| `Image(id)`   | `ImageModel` | custom        | Any model ID    |
 
 ### Transcription Models
 
-| Method | Returns | Model ID |
-|--------|---------|----------|
-| `Whisper1()` | `TranscriptionModel` | `whisper-1` |
-| `Transcription(id)` | `TranscriptionModel` | custom |
+| Method              | Returns              | Model ID    |
+| ------------------- | -------------------- | ----------- |
+| `Whisper1()`        | `TranscriptionModel` | `whisper-1` |
+| `Transcription(id)` | `TranscriptionModel` | custom      |
 
 ### Speech Models
 
-| Method | Returns | Model ID | Notes |
-|--------|---------|----------|-------|
-| `TTS1()` | `SpeechModel` | `tts-1` | Standard quality |
-| `TTS1HD()` | `SpeechModel` | `tts-1-hd` | Higher quality |
+| Method           | Returns       | Model ID          | Notes             |
+| ---------------- | ------------- | ----------------- | ----------------- |
+| `TTS1()`         | `SpeechModel` | `tts-1`           | Standard quality  |
+| `TTS1HD()`       | `SpeechModel` | `tts-1-hd`        | Higher quality    |
 | `GPT4oMiniTTS()` | `SpeechModel` | `gpt-4o-mini-tts` | With instructions |
-| `Speech(id)` | `SpeechModel` | custom |
+| `Speech(id)`     | `SpeechModel` | custom            |
 
 ### Provider-Specific Options
 
@@ -2924,7 +2925,7 @@ type StreamResult struct {
     Stream <-chan StreamPart  // Real-time parts
     Done  <-chan struct{}     // Completion signal
     Err   error               // Stream error
-    
+
     // Blocking methods (wait for completion):
     Text() (string, error)
     Usage() (Usage, error)
@@ -3095,15 +3096,15 @@ Handle errors gracefully with proper retry logic:
 ```go
 func generateWithRetry(ctx context.Context, model provider.Generator, prompt string, maxRetries int) (*generate.Result, error) {
     var lastErr error
-    
+
     for attempt := 0; attempt < maxRetries; attempt++ {
         result, err := generate.Generate(ctx, model, prompt)
         if err == nil {
             return result, nil
         }
-        
+
         lastErr = err
-        
+
         // Don't retry on certain errors
         if provider.IsAuthenticationError(err) ||
            provider.IsNotFoundError(err) ||
@@ -3111,7 +3112,7 @@ func generateWithRetry(ctx context.Context, model provider.Generator, prompt str
            provider.IsContentFiltered(err) {
             return nil, err
         }
-        
+
         // Handle rate limiting
         if provider.IsRateLimited(err) {
             delay := provider.RetryAfter(err)
@@ -3125,14 +3126,14 @@ func generateWithRetry(ctx context.Context, model provider.Generator, prompt str
                 return nil, ctx.Err()
             }
         }
-        
+
         // Handle timeouts with exponential backoff
         if provider.IsTimeout(err) && attempt < maxRetries-1 {
             time.Sleep(time.Second * time.Duration(1<<attempt))
             continue
         }
     }
-    
+
     return nil, fmt.Errorf("max retries exceeded: %w", lastErr)
 }
 ```
@@ -3225,20 +3226,20 @@ fmt.Printf("Name: %s, Email: %s, Age: %d\n", user.Name, user.Email, user.Age)
 
 The SDK includes comprehensive examples in the `examples/` directory:
 
-| Example | Description |
-|---------|-------------|
-| [chat](./examples/openai/chat/) | Basic text generation |
-| [stream](./examples/openai/stream/) | Streaming generation |
-| [structured](./examples/openai/structured/) | JSON structured output |
-| [tools](./examples/openai/tools/) | Tool/function calling |
-| [embed](./examples/openai/embed/) | Text embeddings |
-| [middleware](./examples/openai/middleware/) | Logging and metrics |
-| [middleware_timeout](./examples/openai/middleware_timeout/) | Timeout configuration |
-| [errors](./examples/openai/errors/) | Error handling patterns |
-| [image](./examples/openai/image/) | DALL-E image generation |
-| [speech](./examples/openai/speech/) | Text-to-speech synthesis |
-| [transcription](./examples/openai/transcription/) | Audio transcription |
-| [audio_chat](./examples/openai/audio_chat/) | Multimodal audio chat |
+| Example                                                     | Description              |
+| ----------------------------------------------------------- | ------------------------ |
+| [chat](./examples/openai/chat/)                             | Basic text generation    |
+| [stream](./examples/openai/stream/)                         | Streaming generation     |
+| [structured](./examples/openai/structured/)                 | JSON structured output   |
+| [tools](./examples/openai/tools/)                           | Tool/function calling    |
+| [embed](./examples/openai/embed/)                           | Text embeddings          |
+| [middleware](./examples/openai/middleware/)                 | Logging and metrics      |
+| [middleware_timeout](./examples/openai/middleware_timeout/) | Timeout configuration    |
+| [errors](./examples/openai/errors/)                         | Error handling patterns  |
+| [image](./examples/openai/image/)                           | DALL-E image generation  |
+| [speech](./examples/openai/speech/)                         | Text-to-speech synthesis |
+| [transcription](./examples/openai/transcription/)           | Audio transcription      |
+| [audio_chat](./examples/openai/audio_chat/)                 | Multimodal audio chat    |
 
 ---
 
@@ -3275,18 +3276,18 @@ Lamar SDK is a Go alternative to Vercel's TypeScript AI SDK with similar goals b
 
 ### Feature Comparison
 
-| Feature | Lamar SDK (Go) | Vercel AI SDK (TypeScript) |
-|---------|----------------|---------------------------|
-| Text Generation | ✅ | ✅ |
-| Streaming | ✅ | ✅ |
-| Structured Output | ✅ | ✅ |
-| Tool Calling | ✅ | ✅ |
-| Embeddings | ✅ | ✅ |
-| Image Generation | ✅ | ✅ |
-| Audio | ✅ | ✅ |
-| Multi-provider | ✅ (OpenAI) | ✅ (OpenAI, Anthropic, etc.) |
-| Middleware | ✅ | ✅ |
-| Type Safety | ✅ Go generics | ✅ TypeScript types |
+| Feature           | Lamar SDK (Go) | Vercel AI SDK (TypeScript)   |
+| ----------------- | -------------- | ---------------------------- |
+| Text Generation   | ✅             | ✅                           |
+| Streaming         | ✅             | ✅                           |
+| Structured Output | ✅             | ✅                           |
+| Tool Calling      | ✅             | ✅                           |
+| Embeddings        | ✅             | ✅                           |
+| Image Generation  | ✅             | ✅                           |
+| Audio             | ✅             | ✅                           |
+| Multi-provider    | ✅ (OpenAI)    | ✅ (OpenAI, Anthropic, etc.) |
+| Middleware        | ✅             | ✅                           |
+| Type Safety       | ✅ Go generics | ✅ TypeScript types          |
 
 ### Key Differences
 
@@ -3302,10 +3303,10 @@ If you're familiar with Vercel AI SDK, here's a quick mapping:
 
 ```typescript
 // TypeScript (Vercel AI SDK)
-import { generateText } from 'ai';
+import { generateText } from "ai";
 const { text } = await generateText({
-  model: openai('gpt-4o'),
-  prompt: 'Hello',
+  model: openai("gpt-5-mini-2025-08-07"),
+  prompt: "Hello",
 });
 ```
 
@@ -3313,7 +3314,7 @@ const { text } = await generateText({
 // Go (Lamar SDK)
 import "github.com/seifalmotaz/lamar-sdk/generate"
 client := openai.NewProvider()
-result, _ := generate.Generate(ctx, client.GPT4o(), "Hello")
+result, _ := generate.Generate(ctx, client.GPT5Mini(), "Hello")
 text := result.Text()
 ```
 

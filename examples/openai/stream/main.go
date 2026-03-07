@@ -19,7 +19,7 @@ func main() {
 	}
 
 	client := openai.NewProvider(openai.APIKey(apiKey))
-	model := client.GPT4o()
+	model := client.GPT5Mini()
 
 	fmt.Println("Streaming text generation...")
 	fmt.Println("-------------------------")

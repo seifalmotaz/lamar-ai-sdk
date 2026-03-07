@@ -33,7 +33,7 @@ func main() {
 			middleware.TimeoutWithDefault(30*time.Second),
 		),
 	)
-	model := client.GPT4oMini()
+	model := client.GPT5Mini()
 
 	result, err := generate.Generate(context.Background(), model,
 		"What is 2 + 2? Answer with just the number.",
@@ -63,7 +63,7 @@ func main() {
 		),
 	)
 
-	result2, err := generate.Generate(context.Background(), client2.GPT4oMini(),
+	result2, err := generate.Generate(context.Background(), client2.GPT5Mini(),
 		"Say hello in French.",
 	)
 	if err != nil {
@@ -79,7 +79,7 @@ func main() {
 	modelTimeout := middleware.Timeout(middleware.TimeoutConfig{
 		Default: 30 * time.Second,
 		PerModel: map[string]time.Duration{
-			"o1":         120 * time.Second, // O1 models need more time for reasoning
+			"o1":         120 * time.Second,
 			"o1-mini":    90 * time.Second,
 			"o1-preview": 120 * time.Second,
 		},
@@ -92,7 +92,7 @@ func main() {
 		),
 	)
 
-	result3, err := generate.Generate(context.Background(), client3.GPT4oMini(),
+	result3, err := generate.Generate(context.Background(), client3.GPT5Mini(),
 		"What is 3 + 3? Answer with just the number.",
 	)
 	if err != nil {
@@ -116,7 +116,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result4, err := generate.Generate(ctx, client4.GPT4oMini(),
+	result4, err := generate.Generate(ctx, client4.GPT5Mini(),
 		"Say goodbye.",
 	)
 	if err != nil {

@@ -24,10 +24,10 @@ func TestChatModel_Stream(t *testing.T) {
 
 		// Send streaming chunks
 		chunks := []string{
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":2,"total_tokens":7}}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":2,"total_tokens":7}}`,
 			`data: [DONE]`,
 		}
 
@@ -41,7 +41,7 @@ func TestChatModel_Stream(t *testing.T) {
 	cfg := Config{APIKey: "test-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	req := &provider.GenerateRequest{
 		Prompt: "Say hello",
@@ -98,11 +98,11 @@ func TestChatModel_StreamWithToolCalls(t *testing.T) {
 
 		// Tool call chunks are split across multiple events
 		chunks := []string{
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_123","type":"function","function":{"name":"get_weather","arguments":""}}]},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"location\":"}}]},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"Tokyo\"}"}}]},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"role":"assistant"},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call_123","type":"function","function":{"name":"get_weather","arguments":""}}]},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\"location\":"}}]},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"Tokyo\"}"}}]},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":20,"total_tokens":30}}`,
 			`data: [DONE]`,
 		}
 
@@ -115,7 +115,7 @@ func TestChatModel_StreamWithToolCalls(t *testing.T) {
 	cfg := Config{APIKey: "test-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	req := &provider.GenerateRequest{
 		Prompt: "What's the weather in Tokyo?",
@@ -172,7 +172,7 @@ func TestChatModel_StreamError(t *testing.T) {
 	cfg := Config{APIKey: "invalid-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	req := &provider.GenerateRequest{
 		Prompt: "test",
@@ -196,8 +196,8 @@ func TestChatModel_StreamAccessorFunctions(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 
 		chunks := []string{
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{"content":"Test"},"finish_reason":null}]}`,
-			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{"content":"Test"},"finish_reason":null}]}`,
+			`data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1234567890,"model":"gpt-5.4-2026-03-05","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}`,
 			`data: [DONE]`,
 		}
 
@@ -210,7 +210,7 @@ func TestChatModel_StreamAccessorFunctions(t *testing.T) {
 	cfg := Config{APIKey: "test-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	result, err := model.(provider.Streamer).Stream(context.Background(), &provider.GenerateRequest{Prompt: "test"})
 	if err != nil {
@@ -273,7 +273,7 @@ func TestChatModel_StreamMultipleToolCalls(t *testing.T) {
 	cfg := Config{APIKey: "test-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	result, err := model.(provider.Streamer).Stream(context.Background(), &provider.GenerateRequest{Prompt: "test"})
 	if err != nil {
@@ -322,7 +322,7 @@ func TestChatModel_StreamWithEOF(t *testing.T) {
 	cfg := Config{APIKey: "test-key", BaseURL: server.URL}
 	p := NewProviderWithConfig(cfg)
 
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	result, err := model.(provider.Streamer).Stream(context.Background(), &provider.GenerateRequest{Prompt: "test"})
 	if err != nil {
@@ -348,7 +348,7 @@ func TestChatModel_StreamerInterface(t *testing.T) {
 	// Verify that ChatModel implements provider.Streamer interface
 	cfg := Config{APIKey: "test-key"}
 	p := NewProviderWithConfig(cfg)
-	model := p.Model("gpt-4")
+	model := p.Model("gpt-5.4-2026-03-05")
 
 	var _ provider.Streamer = model.(*ChatModel)
 }

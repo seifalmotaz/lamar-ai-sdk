@@ -18,7 +18,7 @@ func main() {
 	}
 
 	client := openai.NewProvider(openai.APIKey(apiKey))
-	model := client.GPT4o()
+	model := client.GPT5Mini()
 
 	fmt.Println("Generating text...")
 	result, err := generate.Generate(context.Background(), model, "Say hello in 3 different languages, one per line.")

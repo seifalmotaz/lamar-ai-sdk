@@ -32,7 +32,7 @@ func main() {
 	}
 
 	client := openai.NewProvider(openai.APIKey(apiKey))
-	model := client.GPT4o()
+	model := client.GPT5Mini()
 
 	// Create a type-safe tool
 	weatherTool := tool.NewTool("get_weather", "Get current weather for a location",

@@ -190,6 +190,16 @@ func (p *Provider) GPT4oAudioPreview() provider.LanguageModel {
 	return p.StreamingModel("gpt-4o-audio-preview")
 }
 
+// GPT4o returns a GPT-4o model with streaming support.
+func (p *Provider) GPT4o() provider.LanguageModel {
+	return p.StreamingModel("gpt-4o")
+}
+
+// GPT4oMini returns a GPT-4o-mini model with streaming support.
+func (p *Provider) GPT4oMini() provider.LanguageModel {
+	return p.StreamingModel("gpt-4o-mini")
+}
+
 // O1 returns an O1 model.
 func (p *Provider) O1() provider.Generator {
 	return p.Model("o1")

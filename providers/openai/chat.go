@@ -58,11 +58,18 @@ func (m *ChatModel) buildRequest(req *provider.GenerateRequest) (*ChatCompletion
 	openaiReq := &ChatCompletionRequest{
 		Model:       m.id,
 		Messages:    messages,
-		MaxTokens:   req.Config.MaxTokens,
 		Temperature: req.Config.Temperature,
 		TopP:        req.Config.TopP,
 		Stop:        req.Config.StopSequences,
 		Seed:        req.Config.Seed,
+	}
+
+	if req.Config.MaxTokens > 0 {
+		if isGPT5Model(m.id) {
+			openaiReq.MaxCompletionTokens = req.Config.MaxTokens
+		} else {
+			openaiReq.MaxTokens = req.Config.MaxTokens
+		}
 	}
 
 	if req.Config.ToolChoice.Type != "" {
@@ -90,6 +97,10 @@ func (m *ChatModel) buildRequest(req *provider.GenerateRequest) (*ChatCompletion
 	}
 
 	return openaiReq, nil
+}
+
+func isGPT5Model(modelID string) bool {
+	return strings.HasPrefix(modelID, "gpt-5") || strings.HasPrefix(modelID, "o1")
 }
 
 func convertMessage(msg provider.Message) ChatMessage {

@@ -3,22 +3,23 @@ package openai
 import "encoding/json"
 
 type ChatCompletionRequest struct {
-	Model           string          `json:"model"`
-	Messages        []ChatMessage   `json:"messages"`
-	MaxTokens       int             `json:"max_tokens,omitempty"`
-	Temperature     float64         `json:"temperature,omitempty"`
-	TopP            float64         `json:"top_p,omitempty"`
-	TopK            int             `json:"top_k,omitempty"`
-	Stop            []string        `json:"stop,omitempty"`
-	Tools           []Tool          `json:"tools,omitempty"`
-	ToolChoice      any             `json:"tool_choice,omitempty"`
-	Seed            *int            `json:"seed,omitempty"`
-	ResponseFormat  *ResponseFormat `json:"response_format,omitempty"`
-	LogitBias       map[int]float64 `json:"logit_bias,omitempty"`
-	User            string          `json:"user,omitempty"`
-	ReasoningEffort string          `json:"reasoning_effort,omitempty"`
-	Stream          bool            `json:"stream,omitempty"`
-	StreamOptions   *StreamOptions  `json:"stream_options,omitempty"`
+	Model               string          `json:"model"`
+	Messages            []ChatMessage   `json:"messages"`
+	MaxTokens           int             `json:"max_tokens,omitempty"`
+	MaxCompletionTokens int             `json:"max_completion_tokens,omitempty"`
+	Temperature         float64         `json:"temperature,omitempty"`
+	TopP                float64         `json:"top_p,omitempty"`
+	TopK                int             `json:"top_k,omitempty"`
+	Stop                []string        `json:"stop,omitempty"`
+	Tools               []Tool          `json:"tools,omitempty"`
+	ToolChoice          any             `json:"tool_choice,omitempty"`
+	Seed                *int            `json:"seed,omitempty"`
+	ResponseFormat      *ResponseFormat `json:"response_format,omitempty"`
+	LogitBias           map[int]float64 `json:"logit_bias,omitempty"`
+	User                string          `json:"user,omitempty"`
+	ReasoningEffort     string          `json:"reasoning_effort,omitempty"`
+	Stream              bool            `json:"stream,omitempty"`
+	StreamOptions       *StreamOptions  `json:"stream_options,omitempty"`
 }
 
 type ChatMessage struct {

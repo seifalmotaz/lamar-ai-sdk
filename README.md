@@ -25,6 +25,7 @@ Unified, type-safe interface for multiple AI providers.
 - [Image Generation](#image-generation)
 - [Speech Synthesis](#speech-synthesis)
 - [Audio Transcription](#audio-transcription)
+- [Agent Framework](#agent-framework)
 - [Middleware System](#middleware-system)
 - [Error Handling](#error-handling)
 - [Content Types Reference](#content-types-reference)
@@ -1230,6 +1231,312 @@ type Response interface {
     Usage() provider.Usage
     FinishReason() provider.FinishReason
 }
+```
+
+---
+
+## Agent Framework
+
+The `agent` package provides multi-step LLM tool-calling loops with stop conditions. It handles the cycle of: call model → execute tools → call model again until a stop condition is met.
+
+### Basic Usage
+
+```go
+import "github.com/seifalmotaz/lamar-sdk/agent"
+
+func main() {
+    client := openai.NewProvider()
+    model := client.GPT4o()
+    
+    // Create an agent with tools
+    ag := agent.New(model,
+        agent.WithTools(weatherTool, calculatorTool),
+        agent.WithStopWhen(agent.StepCountIs(10)),
+    )
+    
+    // Run synchronously
+    result, err := ag.Invoke(ctx,
+        agent.WithMessages(
+            provider.UserMessage("What's the weather in Tokyo?"),
+        ),
+    )
+    if err != nil {
+        panic(err)
+    }
+    
+    fmt.Println(result.FinalText)
+    fmt.Printf("Steps: %d, Tokens: %d\n", len(result.Steps), result.TotalUsage.TotalTokens)
+}
+```
+
+### Streaming Events
+
+```go
+stream := ag.Stream(ctx,
+    agent.WithMessages(
+        provider.UserMessage("Calculate 42 * 7"),
+    ),
+)
+
+for event := range stream {
+    switch e := event.(type) {
+    case agent.StreamEventStepStart:
+        fmt.Printf("Step %d starting\n", e.StepNumber)
+    case agent.StreamEventContentDelta:
+        fmt.Print(e.Delta)
+    case agent.StreamEventToolCall:
+        fmt.Printf("Tool call: %s\n", e.ToolCall.Name)
+    case agent.StreamEventToolResult:
+        fmt.Printf("Tool result: %v\n", e.Result.Output)
+    case agent.StreamEventStepFinish:
+        fmt.Printf("Step %d finished\n", e.Result.StepNumber)
+    case agent.StreamEventFinish:
+        fmt.Printf("Done! Final text: %s\n", e.Result.FinalText)
+    case agent.StreamEventError:
+        log.Printf("Error: %v", e.Error)
+    }
+}
+```
+
+### Stop Conditions
+
+Control when the agent loop terminates:
+
+```go
+// Stop after N steps
+agent.New(model, agent.WithStopWhen(agent.StepCountIs(5)))
+
+// Stop when a specific tool is called
+agent.New(model, agent.WithStopWhen(agent.HasToolCall("submit_answer")))
+
+// Stop when finish reason matches
+agent.New(model, agent.WithStopWhen(agent.HasFinishReason(
+    provider.FinishReasonStop,
+    provider.FinishReasonLength,
+)))
+
+// Stop when ANY condition is met
+agent.New(model, agent.WithStopWhen(
+    agent.StopWhenAny(
+        agent.StepCountIs(10),
+        agent.HasToolCall("finish"),
+    ),
+))
+
+// Stop when ALL conditions are met
+agent.New(model, agent.WithStopWhen(
+    agent.StopWhenAll(
+        agent.StepCountAtLeast(3),
+        agent.HasToolCall("submit"),
+    ),
+))
+```
+
+### Agent Configuration
+
+```go
+ag := agent.New(model,
+    // Tools available to the agent
+    agent.WithTools(weatherTool, calculatorTool),
+    
+    // Stop conditions
+    agent.WithStopWhen(agent.StepCountIs(10)),
+    
+    // System prompt
+    agent.WithSystem("You are a helpful assistant."),
+    
+    // Tool choice strategy
+    agent.WithToolChoice(provider.ToolChoiceAuto()),
+    
+    // Model parameters
+    agent.WithTemperature(0.7),
+    agent.WithMaxTokens(1000),
+    
+    // Max retries on transient errors
+    agent.WithMaxRetries(3),
+    
+    // Callbacks for observability
+    agent.WithCallbacks(agent.Callbacks{
+        OnStepStart: func(ctx context.Context, stepNumber int, messages []provider.Message) error {
+            log.Printf("Step %d starting", stepNumber)
+            return nil
+        },
+        OnToolCallStart: func(ctx context.Context, tc provider.ToolCall) error {
+            log.Printf("Calling tool: %s", tc.Name)
+            return nil
+        },
+        OnToolCallFinish: func(ctx context.Context, result agent.ToolExecutionResult) error {
+            log.Printf("Tool %s completed in %v", result.ToolName, result.Duration)
+            return nil
+        },
+    }),
+)
+```
+
+### Dynamic Configuration
+
+Change model, tools, or settings between steps:
+
+```go
+ag := agent.New(model,
+    agent.WithTools(defaultTools...),
+    agent.WithPrepareStep(func(ctx context.Context, p agent.PrepareStepParams) *agent.PrepareStepResult {
+        // Use cheaper model after step 3
+        if p.StepNumber > 3 {
+            return &agent.PrepareStepResult{
+                Model: cheapModel,
+                Tools: fewerTools,
+            }
+        }
+        
+        // Change behavior based on last tool calls
+        if len(p.ToolCalls) > 0 && p.ToolCalls[0].Name == "search" {
+            return &agent.PrepareStepResult{
+                System: ptr("Focus on summarizing the search results."),
+            }
+        }
+        
+        return nil // No changes
+    }),
+)
+```
+
+### Callbacks
+
+Full observability into agent execution:
+
+```go
+callbacks := agent.Callbacks{
+    // Called before agent execution begins
+    OnStart: func(ctx context.Context, messages []provider.Message) error {
+        log.Printf("Starting with %d messages", len(messages))
+        return nil
+    },
+    
+    // Called before each step
+    OnStepStart: func(ctx context.Context, stepNumber int, messages []provider.Message) error {
+        log.Printf("Step %d starting with %d messages", stepNumber, len(messages))
+        return nil
+    },
+    
+    // Called after each step completes
+    OnStepFinish: func(ctx context.Context, result agent.StepResult) error {
+        log.Printf("Step %d: %d tool calls, %d tokens, %v",
+            result.StepNumber,
+            len(result.ToolCalls),
+            result.Usage.TotalTokens,
+            result.Duration,
+        )
+        return nil
+    },
+    
+    // Called before tool execution
+    OnToolCallStart: func(ctx context.Context, tc provider.ToolCall) error {
+        log.Printf("Executing tool: %s", tc.Name)
+        return nil
+    },
+    
+    // Called after tool execution
+    OnToolCallFinish: func(ctx context.Context, result agent.ToolExecutionResult) error {
+        if result.Error != nil {
+            log.Printf("Tool %s failed: %v", result.ToolName, result.Error)
+        } else {
+            log.Printf("Tool %s returned: %v", result.ToolName, result.Output)
+        }
+        return nil
+    },
+    
+    // Called when agent completes successfully
+    OnFinish: func(ctx context.Context, result *agent.Result) error {
+        log.Printf("Agent finished: %d steps, %d total tokens",
+            len(result.Steps),
+            result.TotalUsage.TotalTokens,
+        )
+        return nil
+    },
+    
+    // Called on errors - return nil to suppress and continue
+    OnError: func(ctx context.Context, stepNumber int, err error) error {
+        log.Printf("Step %d error: %v", stepNumber, err)
+        return nil // Suppress error, continue to next step
+    },
+}
+
+ag := agent.New(model, agent.WithCallbacks(callbacks))
+```
+
+### Accessing Results
+
+```go
+result, err := ag.Invoke(ctx, agent.WithMessages(messages...))
+
+// Final text response
+fmt.Println(result.FinalText)
+
+// Final content (includes non-text parts)
+for _, c := range result.FinalContent {
+    switch v := c.(type) {
+    case provider.TextContent:
+        fmt.Println(v.Text)
+    case provider.ToolCallContent:
+        fmt.Printf("Tool: %s\n", v.Name)
+    }
+}
+
+// Complete message history
+for i, msg := range result.FinalMessages {
+    fmt.Printf("Message %d [%s]: %v\n", i, msg.Role, msg.Content)
+}
+
+// Step-by-step breakdown
+for _, step := range result.Steps {
+    fmt.Printf("Step %d:\n", step.StepNumber)
+    fmt.Printf("  Model: %s/%s\n", step.Model.Provider, step.Model.ModelID)
+    fmt.Printf("  Tool calls: %d\n", len(step.ToolCalls))
+    fmt.Printf("  Tokens: %d\n", step.Usage.TotalTokens)
+    fmt.Printf("  Duration: %v\n", step.Duration)
+    fmt.Printf("  Finish reason: %s\n", step.FinishReason)
+    
+    for _, tr := range step.ToolResults {
+        fmt.Printf("  Tool %s: %v\n", tr.ToolName, tr.Output)
+    }
+}
+
+// Total usage
+fmt.Printf("Total tokens: %d\n", result.TotalUsage.TotalTokens)
+fmt.Printf("Total duration: %v\n", result.TotalDuration)
+```
+
+### Streaming with Timeout
+
+```go
+// Stream with timeout
+stream := ag.StreamWithTimeout(ctx, 60*time.Second,
+    agent.WithMessages(
+        provider.UserMessage("What's the weather in Tokyo?"),
+    ),
+)
+
+// IMPORTANT: Drain the channel to prevent goroutine leaks
+for event := range stream {
+    // Handle events
+}
+```
+
+### Combining with Regular Generation
+
+```go
+// Use generate package for simple single calls
+result, _ := generate.Generate(ctx, model, "Hello")
+
+// Use agent package when you need tool loops
+ag := agent.New(model,
+    agent.WithTools(weatherTool),
+    agent.WithStopWhen(agent.StepCountIs(5)),
+)
+result, _ := ag.Invoke(ctx, agent.WithMessages(
+    provider.UserMessage("What's the weather in Tokyo?"),
+))
 ```
 
 ---

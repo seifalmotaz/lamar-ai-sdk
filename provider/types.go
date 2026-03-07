@@ -370,3 +370,92 @@ func (NoopMetrics) RecordTokens(context.Context, string, string, int, int)      
 func (NoopMetrics) RecordStreamStart(context.Context, string, string)                   {}
 func (NoopMetrics) RecordStreamEnd(context.Context, string, string, time.Duration)      {}
 func (NoopMetrics) RecordStreamEvent(context.Context, string, string, string)           {}
+
+// ImageFile represents an image file for input or editing.
+type ImageFile struct {
+	Data      []byte
+	MediaType string
+}
+
+// NewImageFile creates an ImageFile from binary data and media type.
+func NewImageFile(data []byte, mediaType string) ImageFile {
+	return ImageFile{Data: data, MediaType: mediaType}
+}
+
+// NewImageFileFromURL creates an ImageFile from a URL.
+func NewImageFileFromURL(url string) ImageFile {
+	return ImageFile{MediaType: "url", Data: []byte(url)}
+}
+
+// ImageRequest is the request for image generation.
+type ImageRequest struct {
+	Prompt  string
+	Files   []ImageFile
+	Mask    *ImageFile
+	N       int
+	Size    string
+	Quality string
+	Format  string
+
+	// Provider-specific options
+	ProviderOptions map[string]any
+}
+
+// ImageUsage represents token usage for image generation.
+type ImageUsage struct {
+	InputTokens  int
+	OutputTokens int
+	TotalTokens  int
+}
+
+// ImageResult contains the result of image generation.
+type ImageResult struct {
+	Images           [][]byte
+	RevisedPrompts   []string
+	Usage            ImageUsage
+	ProviderMetadata map[string]any
+}
+
+// TranscriptSegment represents a segment of transcribed audio.
+type TranscriptSegment struct {
+	Text        string
+	StartSecond float64
+	EndSecond   float64
+}
+
+// TranscriptionRequest is the request for audio transcription.
+type TranscriptionRequest struct {
+	Audio     []byte
+	MediaType string
+	Language  string
+	Prompt    string
+
+	// Provider-specific options
+	ProviderOptions map[string]any
+}
+
+// TranscriptionResult contains the result of audio transcription.
+type TranscriptionResult struct {
+	Text     string
+	Segments []TranscriptSegment
+	Language string
+	Duration float64
+}
+
+// SpeechRequest is the request for text-to-speech synthesis.
+type SpeechRequest struct {
+	Text         string
+	Voice        string
+	Format       string
+	Speed        float64
+	Instructions string
+
+	// Provider-specific options
+	ProviderOptions map[string]any
+}
+
+// SpeechResult contains the result of speech synthesis.
+type SpeechResult struct {
+	Audio     []byte
+	MediaType string
+}

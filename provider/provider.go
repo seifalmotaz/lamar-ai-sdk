@@ -62,6 +62,47 @@ func CanEmbed(m Model) bool {
 	return ok
 }
 
+// ImageModel represents a model that can generate images from text prompts.
+type ImageModel interface {
+	Model
+	// GenerateImage generates images from a text prompt.
+	GenerateImage(ctx context.Context, req *ImageRequest) (*ImageResult, error)
+	// MaxImagesPerCall returns the maximum number of images that can be generated in a single call.
+	MaxImagesPerCall() int
+}
+
+// TranscriptionModel represents a model that can transcribe audio to text.
+type TranscriptionModel interface {
+	Model
+	// Transcribe generates text from audio input.
+	Transcribe(ctx context.Context, req *TranscriptionRequest) (*TranscriptionResult, error)
+}
+
+// SpeechModel represents a model that can synthesize speech from text.
+type SpeechModel interface {
+	Model
+	// Synthesize generates audio from text input.
+	Synthesize(ctx context.Context, req *SpeechRequest) (*SpeechResult, error)
+}
+
+// CanGenerateImage returns true if the model supports image generation.
+func CanGenerateImage(m Model) bool {
+	_, ok := m.(ImageModel)
+	return ok
+}
+
+// CanTranscribe returns true if the model supports audio transcription.
+func CanTranscribe(m Model) bool {
+	_, ok := m.(TranscriptionModel)
+	return ok
+}
+
+// CanSynthesize returns true if the model supports speech synthesis.
+func CanSynthesize(m Model) bool {
+	_, ok := m.(SpeechModel)
+	return ok
+}
+
 // IsLanguageModel returns true if the model supports both streaming and non-streaming generation.
 func IsLanguageModel(m Model) bool {
 	_, ok := m.(LanguageModel)

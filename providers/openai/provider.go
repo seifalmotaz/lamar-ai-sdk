@@ -149,6 +149,21 @@ func (p *Provider) Embedding(id string) provider.EmbeddingModel {
 	}
 }
 
+// Image returns an image generation model with the given ID.
+func (p *Provider) Image(id string, opts ...ImageOption) provider.ImageModel {
+	return NewImageModel(id, p, opts...)
+}
+
+// Transcription returns a transcription model with the given ID.
+func (p *Provider) Transcription(id string, opts ...TranscriptionOption) provider.TranscriptionModel {
+	return NewTranscriptionModel(id, p, opts...)
+}
+
+// Speech returns a speech synthesis model with the given ID.
+func (p *Provider) Speech(id string, opts ...SpeechOption) provider.SpeechModel {
+	return NewSpeechModel(id, p, opts...)
+}
+
 // GPT4 returns a GPT-4 model.
 func (p *Provider) GPT4() provider.Generator {
 	return p.Model("gpt-4")
@@ -197,6 +212,41 @@ func (p *Provider) TextEmbedding3Large() provider.EmbeddingModel {
 // TextEmbeddingAda002 returns a text-embedding-ada-002 embedding model.
 func (p *Provider) TextEmbeddingAda002() provider.EmbeddingModel {
 	return p.Embedding("text-embedding-ada-002")
+}
+
+// DALLE2 returns a DALL-E 2 image generation model.
+func (p *Provider) DALLE2(opts ...ImageOption) provider.ImageModel {
+	return p.Image("dall-e-2", opts...)
+}
+
+// DALLE3 returns a DALL-E 3 image generation model.
+func (p *Provider) DALLE3(opts ...ImageOption) provider.ImageModel {
+	return p.Image("dall-e-3", opts...)
+}
+
+// GPTImage1 returns a GPT Image 1 model.
+func (p *Provider) GPTImage1(opts ...ImageOption) provider.ImageModel {
+	return p.Image("gpt-image-1", opts...)
+}
+
+// Whisper1 returns a Whisper transcription model.
+func (p *Provider) Whisper1(opts ...TranscriptionOption) provider.TranscriptionModel {
+	return p.Transcription("whisper-1", opts...)
+}
+
+// TTS1 returns a TTS-1 speech synthesis model.
+func (p *Provider) TTS1(opts ...SpeechOption) provider.SpeechModel {
+	return p.Speech("tts-1", opts...)
+}
+
+// TTS1HD returns a TTS-1-HD speech synthesis model.
+func (p *Provider) TTS1HD(opts ...SpeechOption) provider.SpeechModel {
+	return p.Speech("tts-1-hd", opts...)
+}
+
+// GPT4oMiniTTS returns a GPT-4o-mini TTS model.
+func (p *Provider) GPT4oMiniTTS(opts ...SpeechOption) provider.SpeechModel {
+	return p.Speech("gpt-4o-mini-tts", opts...)
 }
 
 // GPT4 creates a GPT-4 model using the default provider.

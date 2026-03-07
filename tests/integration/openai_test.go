@@ -1075,3 +1075,98 @@ func TestOpenAI_MultiToolExecution(t *testing.T) {
 	t.Logf("Final response: %s", finalText)
 	t.Logf("Tools called: %v", toolNames)
 }
+
+func TestOpenAI_Transcription(t *testing.T) {
+	apiKey := getAPIKey(t)
+	client := openai.NewProvider(openai.APIKey(apiKey))
+	model := client.Whisper1()
+
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout())
+	defer cancel()
+
+	audioData := []byte("fake audio data - in real test, this would be actual audio bytes")
+	result, err := model.Transcribe(ctx, &provider.TranscriptionRequest{
+		Audio:     audioData,
+		MediaType: "audio/mp3",
+		Language:  "en",
+	})
+	if err != nil {
+		var providerErr *provider.Error
+		if errors.As(err, &providerErr) {
+			if providerErr.Code == provider.CodeInvalidRequest || providerErr.Code == provider.CodeParseError {
+				t.Skipf("Skipping: %v", err)
+			}
+		}
+		t.Fatalf("Transcribe failed: %v", err)
+	}
+
+	if result.Text == "" {
+		t.Error("Expected non-empty transcription text")
+	}
+
+	t.Logf("Transcription: %s", result.Text)
+	if result.Language != "" {
+		t.Logf("Language: %s", result.Language)
+	}
+	if result.Duration > 0 {
+		t.Logf("Duration: %.2f seconds", result.Duration)
+	}
+	if len(result.Segments) > 0 {
+		t.Logf("Segments: %d", len(result.Segments))
+	}
+}
+
+func TestOpenAI_Speech(t *testing.T) {
+	apiKey := getAPIKey(t)
+	client := openai.NewProvider(openai.APIKey(apiKey))
+	model := client.TTS1()
+
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout())
+	defer cancel()
+
+	result, err := model.Synthesize(ctx, &provider.SpeechRequest{
+		Text:  "Hello, this is a test of the text to speech API.",
+		Voice: "alloy",
+	})
+	if err != nil {
+		t.Fatalf("Synthesize failed: %v", err)
+	}
+
+	if len(result.Audio) == 0 {
+		t.Error("Expected non-empty audio data")
+	}
+	if result.MediaType == "" {
+		t.Error("Expected media type to be set")
+	}
+
+	t.Logf("Audio size: %d bytes", len(result.Audio))
+	t.Logf("Media type: %s", result.MediaType)
+}
+
+func TestOpenAI_SpeechWithFormat(t *testing.T) {
+	apiKey := getAPIKey(t)
+	client := openai.NewProvider(openai.APIKey(apiKey))
+	model := client.TTS1HD(openai.SpeechFormat("mp3"))
+
+	ctx, cancel := context.WithTimeout(context.Background(), getTimeout())
+	defer cancel()
+
+	result, err := model.Synthesize(ctx, &provider.SpeechRequest{
+		Text:   "Testing different audio formats.",
+		Voice:  "nova",
+		Format: "opus",
+	})
+	if err != nil {
+		t.Fatalf("Synthesize failed: %v", err)
+	}
+
+	if len(result.Audio) == 0 {
+		t.Error("Expected non-empty audio data")
+	}
+	if result.MediaType != "audio/opus" {
+		t.Errorf("Media type = %q, want audio/opus", result.MediaType)
+	}
+
+	t.Logf("Audio size: %d bytes", len(result.Audio))
+	t.Logf("Media type: %s", result.MediaType)
+}

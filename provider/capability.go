@@ -19,6 +19,12 @@ const (
 	CapJSON Capability = "json"
 	// CapReasoning indicates the model supports reasoning (e.g., O1 models)
 	CapReasoning Capability = "reasoning"
+	// CapImageGeneration indicates the model supports image generation (e.g., DALL-E)
+	CapImageGeneration Capability = "image_generation"
+	// CapTranscription indicates the model supports audio-to-text transcription (e.g., Whisper)
+	CapTranscription Capability = "transcription"
+	// CapSpeech indicates the model supports text-to-speech synthesis (e.g., TTS)
+	CapSpeech Capability = "speech"
 )
 
 // ModelWithInfo is a Model that also provides capability information.
@@ -40,6 +46,12 @@ func HasCapability(m Model, cap Capability) bool {
 	switch cap {
 	case CapStreaming:
 		return CanStream(m)
+	case CapImageGeneration:
+		return CanGenerateImage(m)
+	case CapTranscription:
+		return CanTranscribe(m)
+	case CapSpeech:
+		return CanSynthesize(m)
 	default:
 		return false
 	}

@@ -139,6 +139,7 @@ var (
 	ErrInvalidModel         = &Error{Code: CodeInvalidModel, Message: "model is nil"}
 	ErrInvalidPrompt        = &Error{Code: CodeInvalidPrompt, Message: "prompt cannot be empty"}
 	ErrInvalidInput         = &Error{Code: CodeInvalidInput, Message: "input cannot be empty"}
+	ErrInvalidMediaType     = &Error{Code: CodeInvalidRequest, Message: "media type is required"}
 	ErrRateLimited          = &Error{Code: CodeRateLimited, Message: "rate limit exceeded"}
 	ErrContextCanceled      = &Error{Code: CodeContextCanceled, Message: "context canceled"}
 	ErrAPITimeout           = &Error{Code: CodeAPITimeout, Message: "API request timed out"}

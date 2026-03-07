@@ -367,6 +367,7 @@ func TestSentinelErrors(t *testing.T) {
 		{"ErrInvalidModel", ErrInvalidModel, CodeInvalidModel, "model is nil"},
 		{"ErrInvalidPrompt", ErrInvalidPrompt, CodeInvalidPrompt, "prompt cannot be empty"},
 		{"ErrInvalidInput", ErrInvalidInput, CodeInvalidInput, "input cannot be empty"},
+		{"ErrInvalidMediaType", ErrInvalidMediaType, CodeInvalidRequest, "media type is required"},
 		{"ErrRateLimited", ErrRateLimited, CodeRateLimited, "rate limit exceeded"},
 		{"ErrContextCanceled", ErrContextCanceled, CodeContextCanceled, "context canceled"},
 		{"ErrAPITimeout", ErrAPITimeout, CodeAPITimeout, "API request timed out"},

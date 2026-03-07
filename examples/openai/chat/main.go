@@ -28,7 +28,7 @@ func main() {
 	}
 
 	fmt.Println("\nResult:")
-	fmt.Println(result.Text)
+	fmt.Println(result.Text())
 	fmt.Printf("\nTokens: %d prompt + %d completion = %d total\n",
 		result.Usage().PromptTokens,
 		result.Usage().CompletionTokens,

@@ -90,6 +90,12 @@ func Audio(data []byte, mediaType string) AudioContent {
 	return AudioContent{Data: data, MediaType: mediaType}
 }
 
+// AudioFromURL creates an AudioContent from a URL string.
+// Note: OpenAI doesn't currently support URL-based audio, this is for future compatibility.
+func AudioFromURL(url string) AudioContent {
+	return AudioContent{MediaType: "url", Data: []byte(url)}
+}
+
 // NewToolCallContent creates a ToolCallContent with the given parameters.
 func NewToolCallContent(id, name string, input json.RawMessage) ToolCallContent {
 	return ToolCallContent{ID: id, Name: name, Input: input}

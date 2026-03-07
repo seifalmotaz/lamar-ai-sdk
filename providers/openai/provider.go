@@ -179,6 +179,12 @@ func (p *Provider) GPT4oMini() provider.LanguageModel {
 	return p.StreamingModel("gpt-4o-mini")
 }
 
+// GPT4oAudioPreview returns a GPT-4o model with audio input support.
+// This model can process audio content in messages.
+func (p *Provider) GPT4oAudioPreview() provider.LanguageModel {
+	return p.StreamingModel("gpt-4o-audio-preview")
+}
+
 // GPT4Turbo returns a GPT-4-turbo model.
 func (p *Provider) GPT4Turbo() provider.Generator {
 	return p.Model("gpt-4-turbo")
@@ -262,6 +268,11 @@ func GPT4o() provider.Generator {
 // GPT4oMini creates a GPT-4o-mini model using the default provider.
 func GPT4oMini() provider.Generator {
 	return NewProvider().GPT4oMini()
+}
+
+// GPT4oAudioPreview creates a GPT-4o-audio-preview model using the default provider.
+func GPT4oAudioPreview() provider.LanguageModel {
+	return NewProvider().GPT4oAudioPreview()
 }
 
 // O1 creates an O1 model using the default provider.

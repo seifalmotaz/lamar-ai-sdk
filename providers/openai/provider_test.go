@@ -579,6 +579,156 @@ func TestMapFinishReason(t *testing.T) {
 	}
 }
 
+func TestConvertMessage_AudioContent(t *testing.T) {
+	tests := []struct {
+		name      string
+		msg       provider.Message
+		wantRole  string
+		wantParts int
+		checkFunc func(t *testing.T, cm ChatMessage)
+	}{
+		{
+			name: "simple text message",
+			msg:  provider.UserMessage("Hello"),
+			checkFunc: func(t *testing.T, cm ChatMessage) {
+				if cm.Role != "user" {
+					t.Errorf("role = %q, want %q", cm.Role, "user")
+				}
+				if cm.Content != "Hello" {
+					t.Errorf("content = %q, want %q", cm.Content, "Hello")
+				}
+			},
+		},
+		{
+			name: "audio content",
+			msg: provider.UserMessageWithContent(
+				provider.Audio([]byte("test-audio-data"), "audio/wav"),
+			),
+			checkFunc: func(t *testing.T, cm ChatMessage) {
+				if cm.Role != "user" {
+					t.Errorf("role = %q, want %q", cm.Role, "user")
+				}
+				parts, ok := cm.Content.([]ContentPart)
+				if !ok {
+					t.Fatalf("content is not []ContentPart: %T", cm.Content)
+				}
+				if len(parts) != 1 {
+					t.Fatalf("expected 1 part, got %d", len(parts))
+				}
+				if parts[0].Type != "input_audio" {
+					t.Errorf("part type = %q, want %q", parts[0].Type, "input_audio")
+				}
+				if parts[0].InputAudio == nil {
+					t.Fatal("InputAudio is nil")
+				}
+				if parts[0].InputAudio.Format != "wav" {
+					t.Errorf("format = %q, want %q", parts[0].InputAudio.Format, "wav")
+				}
+			},
+		},
+		{
+			name: "audio content with mp3 format",
+			msg: provider.UserMessageWithContent(
+				provider.Audio([]byte("mp3-data"), "audio/mp3"),
+			),
+			checkFunc: func(t *testing.T, cm ChatMessage) {
+				parts, ok := cm.Content.([]ContentPart)
+				if !ok {
+					t.Fatalf("content is not []ContentPart: %T", cm.Content)
+				}
+				if len(parts) != 1 {
+					t.Fatalf("expected 1 part, got %d", len(parts))
+				}
+				if parts[0].InputAudio == nil {
+					t.Fatal("InputAudio is nil")
+				}
+				if parts[0].InputAudio.Format != "mp3" {
+					t.Errorf("format = %q, want %q", parts[0].InputAudio.Format, "mp3")
+				}
+			},
+		},
+		{
+			name: "mixed text and audio content",
+			msg: provider.UserMessageWithContent(
+				provider.Text("What is in this audio?"),
+				provider.Audio([]byte("audio-data"), "audio/webm"),
+			),
+			checkFunc: func(t *testing.T, cm ChatMessage) {
+				parts, ok := cm.Content.([]ContentPart)
+				if !ok {
+					t.Fatalf("content is not []ContentPart: %T", cm.Content)
+				}
+				if len(parts) != 2 {
+					t.Fatalf("expected 2 parts, got %d", len(parts))
+				}
+				if parts[0].Type != "text" {
+					t.Errorf("first part type = %q, want %q", parts[0].Type, "text")
+				}
+				if parts[1].Type != "input_audio" {
+					t.Errorf("second part type = %q, want %q", parts[1].Type, "input_audio")
+				}
+				if parts[1].InputAudio.Format != "webm" {
+					t.Errorf("audio format = %q, want %q", parts[1].InputAudio.Format, "webm")
+				}
+			},
+		},
+		{
+			name: "image content",
+			msg: provider.UserMessageWithContent(
+				provider.Image([]byte("image-data"), "image/png"),
+			),
+			checkFunc: func(t *testing.T, cm ChatMessage) {
+				parts, ok := cm.Content.([]ContentPart)
+				if !ok {
+					t.Fatalf("content is not []ContentPart: %T", cm.Content)
+				}
+				if len(parts) != 1 {
+					t.Fatalf("expected 1 part, got %d", len(parts))
+				}
+				if parts[0].Type != "image_url" {
+					t.Errorf("part type = %q, want %q", parts[0].Type, "image_url")
+				}
+				if parts[0].ImageURL == nil {
+					t.Fatal("ImageURL is nil")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cm := convertMessage(tt.msg)
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, cm)
+			}
+		})
+	}
+}
+
+func TestExtractAudioFormat(t *testing.T) {
+	tests := []struct {
+		mediaType string
+		want      string
+	}{
+		{"audio/wav", "wav"},
+		{"audio/mp3", "mp3"},
+		{"audio/webm", "webm"},
+		{"audio/m4a", "m4a"},
+		{"audio/mpeg", "mpeg"},
+		{"", "wav"},
+		{"unknown", "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.mediaType, func(t *testing.T) {
+			got := extractAudioFormat(tt.mediaType)
+			if got != tt.want {
+				t.Errorf("extractAudioFormat(%q) = %q, want %q", tt.mediaType, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestConvertToolChoice(t *testing.T) {
 	tests := []struct {
 		name string

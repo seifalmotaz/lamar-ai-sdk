@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"strings"
 
 	"github.com/seifalmotaz/lamar-sdk/provider"
 )
@@ -163,6 +164,15 @@ func convertMessage(msg provider.Message) ChatMessage {
 					},
 				})
 			}
+		case provider.AudioContent:
+			format := extractAudioFormat(content.MediaType)
+			otherParts = append(otherParts, ContentPart{
+				Type: "input_audio",
+				InputAudio: &InputAudio{
+					Data:   encodeBase64(content.Data),
+					Format: format,
+				},
+			})
 		}
 	}
 
@@ -329,4 +339,15 @@ func mapFinishReason(reason string) provider.FinishReason {
 
 func encodeBase64(data []byte) string {
 	return base64.StdEncoding.EncodeToString(data)
+}
+
+func extractAudioFormat(mediaType string) string {
+	if mediaType == "" {
+		return "wav"
+	}
+	parts := strings.Split(mediaType, "/")
+	if len(parts) == 2 {
+		return parts[1]
+	}
+	return mediaType
 }

@@ -33,6 +33,149 @@ func (c *Client) SetHeader(key, value string) {
 	c.Headers[key] = value
 }
 
+func (c *Client) DoWithHeaders(ctx context.Context, method, path string, body, result any, extraHeaders map[string]string) error {
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return &provider.Error{
+				Code:    provider.CodeParseError,
+				Message: "failed to marshal request body",
+				Cause:   err,
+			}
+		}
+		reqBody = strings.NewReader(string(data))
+	}
+
+	url := c.BaseURL + path
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	if err != nil {
+		return &provider.Error{
+			Code:    provider.CodeInvalidRequest,
+			Message: "failed to create request",
+			Cause:   err,
+		}
+	}
+
+	for key, value := range c.Headers {
+		req.Header.Set(key, value)
+	}
+	for key, value := range extraHeaders {
+		req.Header.Set(key, value)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		if ctx.Err() == context.Canceled {
+			return provider.ErrContextCanceled
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return provider.ErrAPITimeout
+		}
+		return &provider.Error{
+			Code:    provider.CodeAPITimeout,
+			Message: "request failed",
+			Cause:   err,
+		}
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return &provider.Error{
+			Code:    provider.CodeParseError,
+			Message: "failed to read response body",
+			Cause:   err,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		return mapError(resp, respBody)
+	}
+
+	if result != nil && len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			return &provider.Error{
+				Code:    provider.CodeParseError,
+				Message: "failed to unmarshal response",
+				Cause:   err,
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *Client) DoStreamWithHeaders(ctx context.Context, method, path string, body any, extraHeaders map[string]string) (io.ReadCloser, error) {
+	var reqBody io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return nil, &provider.Error{
+				Code:    provider.CodeParseError,
+				Message: "failed to marshal request body",
+				Cause:   err,
+			}
+		}
+		reqBody = strings.NewReader(string(data))
+	}
+
+	url := c.BaseURL + path
+	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
+	if err != nil {
+		return nil, &provider.Error{
+			Code:    provider.CodeInvalidRequest,
+			Message: "failed to create request",
+			Cause:   err,
+		}
+	}
+
+	for key, value := range c.Headers {
+		req.Header.Set(key, value)
+	}
+	for key, value := range extraHeaders {
+		req.Header.Set(key, value)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		if ctx.Err() == context.Canceled {
+			return nil, provider.ErrContextCanceled
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			return nil, provider.ErrAPITimeout
+		}
+		return nil, &provider.Error{
+			Code:    provider.CodeAPITimeout,
+			Message: "request failed",
+			Cause:   err,
+		}
+	}
+
+	if resp.StatusCode >= 400 {
+		defer resp.Body.Close()
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, &provider.Error{
+				Code:    provider.CodeParseError,
+				Message: "failed to read error response body",
+				Cause:   err,
+			}
+		}
+		return nil, mapError(resp, respBody)
+	}
+
+	return resp.Body, nil
+}
+
 func (c *Client) Do(ctx context.Context, method, path string, body, result any) error {
 	var reqBody io.Reader
 	if body != nil {

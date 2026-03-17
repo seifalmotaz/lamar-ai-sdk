@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestRetry_Success(t *testing.T) {

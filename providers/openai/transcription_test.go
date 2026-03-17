@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestTranscriptionModel_Transcribe(t *testing.T) {

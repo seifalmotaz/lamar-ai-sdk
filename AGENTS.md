@@ -228,7 +228,7 @@ The `agent/` package provides multi-step LLM tool-calling loops. Use it when:
 ## Package Layout
 
 ```
-lamar-sdk/
+lamar-ai-sdk/
 ├── provider/              # Interfaces and types (PUBLIC API)
 │   ├── provider.go        # Core interfaces (Model, Generator, Streamer, etc.)
 │   ├── types.go           # Content types, Messages, Usage, etc.

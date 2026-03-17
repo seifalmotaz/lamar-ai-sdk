@@ -1,8 +1,8 @@
-module github.com/seifalmotaz/lamar-sdk/examples
+module github.com/seifalmotaz/lamar-ai-sdk/examples
 
 go 1.23
 
-require github.com/seifalmotaz/lamar-sdk v0.0.0
+require github.com/seifalmotaz/lamar-ai-sdk v0.0.0
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
@@ -15,4 +15,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/seifalmotaz/lamar-sdk => ../
+replace github.com/seifalmotaz/lamar-ai-sdk => ../

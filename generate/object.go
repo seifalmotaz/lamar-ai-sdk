@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/schema"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/schema"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // ObjectResult contains the result of a structured object generation.

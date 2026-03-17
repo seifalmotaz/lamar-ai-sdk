@@ -1,6 +1,6 @@
 package embed
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 /*
 Package embed provides a high-level API for generating text embeddings with AI models.
@@ -20,8 +20,8 @@ The embed package wraps provider.EmbeddingModel implementations with:
 	    "context"
 	    "fmt"
 
-	    "github.com/seifalmotaz/lamar-sdk/embed"
-	    "github.com/seifalmotaz/lamar-sdk/providers/openai"
+	    "github.com/seifalmotaz/lamar-ai-sdk/embed"
+	    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 	)
 
 	func main() {

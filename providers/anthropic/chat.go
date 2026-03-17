@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/sse"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/sse"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 const DefaultMaxTokens = 4096

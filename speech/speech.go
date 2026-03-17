@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/ctxutil"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/ctxutil"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 const DefaultTimeout = 60 * time.Second

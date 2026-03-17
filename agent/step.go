@@ -3,7 +3,7 @@ package agent
 import (
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // StepResult contains the outcome of a single agent step.

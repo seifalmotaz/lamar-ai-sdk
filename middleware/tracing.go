@@ -16,7 +16,7 @@ import (
 //	tp := otel.GetTracerProvider()
 //	middleware.Tracing(tp)
 func Tracing(tp trace.TracerProvider) Middleware {
-	tracer := tp.Tracer("github.com/seifalmotaz/lamar-sdk")
+	tracer := tp.Tracer("github.com/seifalmotaz/lamar-ai-sdk")
 
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, req Request) (Response, error) {
@@ -64,7 +64,7 @@ type TracingConfig struct {
 func TracingWithConfig(tp trace.TracerProvider, cfg TracingConfig) Middleware {
 	tracerName := cfg.TracerName
 	if tracerName == "" {
-		tracerName = "github.com/seifalmotaz/lamar-sdk"
+		tracerName = "github.com/seifalmotaz/lamar-ai-sdk"
 	}
 	spanName := cfg.SpanName
 	if spanName == "" {
@@ -106,7 +106,7 @@ func TracingWithConfig(tp trace.TracerProvider, cfg TracingConfig) Middleware {
 
 // TracingForEmbed returns a middleware that adds OpenTelemetry tracing for embedding requests.
 func TracingForEmbed(tp trace.TracerProvider) Middleware {
-	tracer := tp.Tracer("github.com/seifalmotaz/lamar-sdk")
+	tracer := tp.Tracer("github.com/seifalmotaz/lamar-ai-sdk")
 
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx context.Context, req Request) (Response, error) {

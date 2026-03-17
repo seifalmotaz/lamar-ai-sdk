@@ -3,7 +3,7 @@ package speech
 import (
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 type Config struct {

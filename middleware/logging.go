@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Logging creates a middleware that logs request lifecycle events.

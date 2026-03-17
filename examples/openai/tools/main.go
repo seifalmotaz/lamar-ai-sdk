@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/seifalmotaz/lamar-sdk/generate"
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/providers/openai"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/generate"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 type WeatherInput struct {

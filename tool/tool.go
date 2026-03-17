@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/schema"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/schema"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Tool represents a callable tool that can be used by AI models.

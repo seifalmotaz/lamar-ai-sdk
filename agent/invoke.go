@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 // InvokeOption configures a single invocation of the agent.

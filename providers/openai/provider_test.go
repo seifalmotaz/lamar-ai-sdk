@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/middleware"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/middleware"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestWithMiddleware_Streaming(t *testing.T) {

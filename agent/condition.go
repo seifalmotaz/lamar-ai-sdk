@@ -3,7 +3,7 @@ package agent
 import (
 	"context"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // StopCondition is a function that determines when the agent should stop.

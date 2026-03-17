@@ -43,7 +43,7 @@ Unified, type-safe interface for multiple AI providers.
 ## Installation
 
 ```bash
-go get github.com/seifalmotaz/lamar-sdk
+go get github.com/seifalmotaz/lamar-ai-sdk
 ```
 
 **Requirements:**
@@ -62,8 +62,8 @@ import (
     "fmt"
     "os"
 
-    "github.com/seifalmotaz/lamar-sdk/generate"
-    "github.com/seifalmotaz/lamar-sdk/providers/openai"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 )
 
 func main() {
@@ -233,8 +233,8 @@ result, err := generate.Generate(ctx, model, "prompt",
 ```go
 import (
     "context"
-    "github.com/seifalmotaz/lamar-sdk/generate"
-    "github.com/seifalmotaz/lamar-sdk/providers/openai"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 )
 
 func main() {
@@ -350,7 +350,7 @@ fmt.Printf("Prompt: %d, Completion: %d, Total: %d\n",
 ### Basic Streaming
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/stream"
+import "github.com/seifalmotaz/lamar-ai-sdk/stream"
 
 func main() {
     client := openai.NewProvider()
@@ -554,7 +554,7 @@ result, err := generate.GenerateObject[Person](ctx, model, "prompt",
 ### Type-Safe Tool Definition
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/tool"
+import "github.com/seifalmotaz/lamar-ai-sdk/tool"
 
 // Define input/output types with schema tags
 type WeatherInput struct {
@@ -705,7 +705,7 @@ messages = append(messages, provider.ToolResultMessage(toolResult))
 ### Single Embedding
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/embed"
+import "github.com/seifalmotaz/lamar-ai-sdk/embed"
 
 func main() {
     client := openai.NewProvider()
@@ -890,7 +890,7 @@ for _, content := range result.Content() {
 ### Basic Image Generation
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/image"
+import "github.com/seifalmotaz/lamar-ai-sdk/image"
 
 func main() {
     client := openai.NewProvider()
@@ -956,7 +956,7 @@ fmt.Printf("Images generated: %d\n", len(result.Images))
 ### Basic Text-to-Speech
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/speech"
+import "github.com/seifalmotaz/lamar-ai-sdk/speech"
 
 func main() {
     client := openai.NewProvider()
@@ -1009,7 +1009,7 @@ result, err := speech.Synthesize(ctx, model, "text to speak",
 ### Basic Transcription
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/transcription"
+import "github.com/seifalmotaz/lamar-ai-sdk/transcription"
 
 func main() {
     client := openai.NewProvider()
@@ -1073,7 +1073,7 @@ type Middleware func(Handler) Handler
 #### Timeout Middleware
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/middleware"
+import "github.com/seifalmotaz/lamar-ai-sdk/middleware"
 
 // Simple timeout
 client := openai.NewProvider(
@@ -1162,7 +1162,7 @@ client := openai.NewProvider(
 ```go
 import (
     "go.opentelemetry.io/otel/trace"
-    "github.com/seifalmotaz/lamar-sdk/middleware"
+    "github.com/seifalmotaz/lamar-ai-sdk/middleware"
 )
 
 tracerProvider := trace.NewTracerProvider()
@@ -1243,7 +1243,7 @@ The `agent` package provides multi-step LLM tool-calling loops with stop conditi
 ### Basic Usage
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/agent"
+import "github.com/seifalmotaz/lamar-ai-sdk/agent"
 
 func main() {
     client := openai.NewProvider()
@@ -1584,7 +1584,7 @@ type Error struct {
 ```go
 import (
     "errors"
-    "github.com/seifalmotaz/lamar-sdk/provider"
+    "github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 result, err := generate.Generate(ctx, model, "prompt")
@@ -2089,9 +2089,9 @@ import (
     "net/http"
     "os"
 
-    "github.com/seifalmotaz/lamar-sdk/internal/httpx"
-    "github.com/seifalmotaz/lamar-sdk/middleware"
-    "github.com/seifalmotaz/lamar-sdk/provider"
+    "github.com/seifalmotaz/lamar-ai-sdk/internal/httpx"
+    "github.com/seifalmotaz/lamar-ai-sdk/middleware"
+    "github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 const DefaultBaseURL = "https://api.yourprovider.com/v1"
@@ -2193,7 +2193,7 @@ import (
     "context"
     "encoding/json"
 
-    "github.com/seifalmotaz/lamar-sdk/provider"
+    "github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 type ChatModel struct {
@@ -2391,8 +2391,8 @@ import (
     "encoding/json"
     "io"
 
-    "github.com/seifalmotaz/lamar-sdk/internal/sse"
-    "github.com/seifalmotaz/lamar-sdk/provider"
+    "github.com/seifalmotaz/lamar-ai-sdk/internal/sse"
+    "github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {
@@ -2628,7 +2628,7 @@ import (
     "net/http/httptest"
     "testing"
 
-    "github.com/seifalmotaz/lamar-sdk/provider"
+    "github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestChatModelGenerate(t *testing.T) {
@@ -2714,7 +2714,7 @@ func TestChatModelGenerate(t *testing.T) {
 ### Provider Initialization
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/providers/openai"
+import "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 
 // Simple initialization (uses OPENAI_API_KEY env var)
 client := openai.NewProvider()
@@ -3312,7 +3312,7 @@ const { text } = await generateText({
 
 ```go
 // Go (Lamar SDK)
-import "github.com/seifalmotaz/lamar-sdk/generate"
+import "github.com/seifalmotaz/lamar-ai-sdk/generate"
 client := openai.NewProvider()
 result, _ := generate.Generate(ctx, client.GPT5Mini(), "Hello")
 text := result.Text()

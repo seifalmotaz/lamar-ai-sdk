@@ -1,6 +1,6 @@
 package image
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 /*
 Package image provides a high-level API for image generation with AI models.
@@ -21,8 +21,8 @@ The image package wraps provider.ImageModel implementations with:
 	    "fmt"
 	    "os"
 
-	    "github.com/seifalmotaz/lamar-sdk/image"
-	    "github.com/seifalmotaz/lamar-sdk/providers/openai"
+	    "github.com/seifalmotaz/lamar-ai-sdk/image"
+	    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 	)
 
 	func main() {

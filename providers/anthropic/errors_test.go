@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestMapError(t *testing.T) {

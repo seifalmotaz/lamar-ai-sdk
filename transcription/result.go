@@ -1,6 +1,6 @@
 package transcription
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 type Result struct {
 	Text     string

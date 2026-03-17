@@ -3,7 +3,7 @@ package openai
 import (
 	"net/http"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/httpx"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/httpx"
 )
 
 // Config holds provider configuration.

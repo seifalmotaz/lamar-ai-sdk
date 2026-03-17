@@ -1,6 +1,6 @@
 package embed
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 // Result contains the result of a single embedding request.
 type Result struct {

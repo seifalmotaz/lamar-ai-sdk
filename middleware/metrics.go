@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Metrics creates a middleware that collects metrics for each request.

@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Handler processes a request and returns a response.

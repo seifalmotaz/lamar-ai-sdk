@@ -3,8 +3,8 @@ package agent
 import (
 	"context"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 // PrepareStep is a function called before each step to allow dynamic configuration.

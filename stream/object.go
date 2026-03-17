@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/internal/schema"
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/internal/schema"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // ObjectPart represents a part of a structured object stream.

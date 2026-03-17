@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/embed"
-	"github.com/seifalmotaz/lamar-sdk/generate"
-	"github.com/seifalmotaz/lamar-sdk/middleware"
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/providers/openai"
-	"github.com/seifalmotaz/lamar-sdk/stream"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/embed"
+	"github.com/seifalmotaz/lamar-ai-sdk/generate"
+	"github.com/seifalmotaz/lamar-ai-sdk/middleware"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+	"github.com/seifalmotaz/lamar-ai-sdk/stream"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 const testModel = "gpt-5-mini-2025-08-07"

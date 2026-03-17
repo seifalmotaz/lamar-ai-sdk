@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 type mockStreamer struct {

@@ -1,6 +1,6 @@
 package transcription
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 /*
 Package transcription provides a high-level API for audio-to-text transcription with AI models.
@@ -21,8 +21,8 @@ The transcription package wraps provider.TranscriptionModel implementations with
 	    "fmt"
 	    "os"
 
-	    "github.com/seifalmotaz/lamar-sdk/providers/openai"
-	    "github.com/seifalmotaz/lamar-sdk/transcription"
+	    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+	    "github.com/seifalmotaz/lamar-ai-sdk/transcription"
 	)
 
 	func main() {

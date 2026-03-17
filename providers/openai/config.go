@@ -1,7 +1,7 @@
 package openai
 
 import (
-	"github.com/seifalmotaz/lamar-sdk/generate"
+	"github.com/seifalmotaz/lamar-ai-sdk/generate"
 )
 
 // ChatConfig holds OpenAI-specific configuration for chat completions.

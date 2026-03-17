@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/generate"
-	"github.com/seifalmotaz/lamar-sdk/providers/openai"
+	"github.com/seifalmotaz/lamar-ai-sdk/generate"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 )
 
 // consoleLogger implements provider.Logger

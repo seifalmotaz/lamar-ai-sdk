@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/seifalmotaz/lamar-sdk/embed"
-	"github.com/seifalmotaz/lamar-sdk/providers/openai"
+	"github.com/seifalmotaz/lamar-ai-sdk/embed"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 )
 
 func main() {

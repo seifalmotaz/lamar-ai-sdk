@@ -1,8 +1,8 @@
 package agent
 
 import (
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 // Option configures an Agent.

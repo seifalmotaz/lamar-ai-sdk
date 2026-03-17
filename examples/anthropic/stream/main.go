@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/providers/anthropic"
-	"github.com/seifalmotaz/lamar-sdk/stream"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/anthropic"
+	"github.com/seifalmotaz/lamar-ai-sdk/stream"
 )
 
 func main() {

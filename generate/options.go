@@ -3,7 +3,7 @@ package generate
 import (
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Config holds the configuration for text generation.

@@ -3,7 +3,7 @@ package anthropic
 import (
 	"testing"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 func TestNewProvider(t *testing.T) {

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/generate"
-	"github.com/seifalmotaz/lamar-sdk/middleware"
-	"github.com/seifalmotaz/lamar-sdk/provider"
-	"github.com/seifalmotaz/lamar-sdk/providers/anthropic"
-	"github.com/seifalmotaz/lamar-sdk/stream"
-	"github.com/seifalmotaz/lamar-sdk/tool"
+	"github.com/seifalmotaz/lamar-ai-sdk/generate"
+	"github.com/seifalmotaz/lamar-ai-sdk/middleware"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/anthropic"
+	"github.com/seifalmotaz/lamar-ai-sdk/stream"
+	"github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 const anthropicTestModel = "claude-3-5-haiku-20241022"

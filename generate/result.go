@@ -1,6 +1,6 @@
 package generate
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 // Result contains the result of a text generation request.
 // Use the accessor methods to safely retrieve values.

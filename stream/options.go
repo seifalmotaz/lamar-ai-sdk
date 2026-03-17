@@ -3,7 +3,7 @@ package stream
 import (
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/provider"
+	"github.com/seifalmotaz/lamar-ai-sdk/provider"
 )
 
 // Config holds the configuration for streaming text generation.

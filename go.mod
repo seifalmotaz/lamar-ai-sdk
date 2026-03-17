@@ -1,4 +1,4 @@
-module github.com/seifalmotaz/lamar-sdk
+module github.com/seifalmotaz/lamar-ai-sdk
 
 go 1.23
 

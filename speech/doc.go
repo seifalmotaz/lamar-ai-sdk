@@ -1,6 +1,6 @@
 package speech
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 /*
 Package speech provides a high-level API for text-to-speech synthesis with AI models.
@@ -21,8 +21,8 @@ The speech package wraps provider.SpeechModel implementations with:
 	    "fmt"
 	    "os"
 
-	    "github.com/seifalmotaz/lamar-sdk/providers/openai"
-	    "github.com/seifalmotaz/lamar-sdk/speech"
+	    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+	    "github.com/seifalmotaz/lamar-ai-sdk/speech"
 	)
 
 	func main() {

@@ -5,7 +5,7 @@ The Anthropic provider implements support for Claude models via the Anthropic Me
 ## Installation
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/providers/anthropic"
+import "github.com/seifalmotaz/lamar-ai-sdk/providers/anthropic"
 ```
 
 ## Quick Start
@@ -18,8 +18,8 @@ import (
     "fmt"
     "os"
 
-    "github.com/seifalmotaz/lamar-sdk/generate"
-    "github.com/seifalmotaz/lamar-sdk/providers/anthropic"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+    "github.com/seifalmotaz/lamar-ai-sdk/providers/anthropic"
 )
 
 func main() {
@@ -180,7 +180,7 @@ model := client.Claude45Sonnet(
 ## Streaming
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/stream"
+import "github.com/seifalmotaz/lamar-ai-sdk/stream"
 
 func main() {
     client := anthropic.NewProvider()
@@ -215,8 +215,8 @@ func main() {
 
 ```go
 import (
-    "github.com/seifalmotaz/lamar-sdk/generate"
-    "github.com/seifalmotaz/lamar-sdk/tool"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+    "github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 type WeatherInput struct {
@@ -413,7 +413,7 @@ result, err := generate.Generate(ctx, model, "prompt",
 ## Middleware
 
 ```go
-import "github.com/seifalmotaz/lamar-sdk/middleware"
+import "github.com/seifalmotaz/lamar-ai-sdk/middleware"
 
 client := anthropic.NewProvider(
     anthropic.APIKey("sk-ant-..."),
@@ -549,11 +549,11 @@ import (
     "log"
     "os"
 
-    "github.com/seifalmotaz/lamar-sdk/generate"
-    "github.com/seifalmotaz/lamar-sdk/middleware"
-    "github.com/seifalmotaz/lamar-sdk/providers/anthropic"
-    "github.com/seifalmotaz/lamar-sdk/stream"
-    "github.com/seifalmotaz/lamar-sdk/tool"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+    "github.com/seifalmotaz/lamar-ai-sdk/middleware"
+    "github.com/seifalmotaz/lamar-ai-sdk/providers/anthropic"
+    "github.com/seifalmotaz/lamar-ai-sdk/stream"
+    "github.com/seifalmotaz/lamar-ai-sdk/tool"
 )
 
 func main() {

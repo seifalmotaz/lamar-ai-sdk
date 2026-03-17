@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/seifalmotaz/lamar-sdk/providers/openai"
-	"github.com/seifalmotaz/lamar-sdk/speech"
+	"github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+	"github.com/seifalmotaz/lamar-ai-sdk/speech"
 )
 
 func main() {

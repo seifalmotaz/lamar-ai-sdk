@@ -1,6 +1,6 @@
 package generate
 
-import "github.com/seifalmotaz/lamar-sdk/provider"
+import "github.com/seifalmotaz/lamar-ai-sdk/provider"
 
 /*
 Package generate provides a high-level API for text generation with AI models.
@@ -21,8 +21,8 @@ The generate package wraps provider.Generator implementations with:
 	    "fmt"
 	    "time"
 
-	    "github.com/seifalmotaz/lamar-sdk/generate"
-	    "github.com/seifalmotaz/lamar-sdk/providers/openai"
+	    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+	    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
 	)
 
 	func main() {

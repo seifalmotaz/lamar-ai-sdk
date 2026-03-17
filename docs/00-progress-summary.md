@@ -54,7 +54,7 @@ type Middleware func(Handler) Handler
 
 ## Discoveries
 
-- **Module path**: `github.com/seifalmotaz/lamar-sdk`
+- **Module path**: `github.com/seifalmotaz/lamar-ai-sdk`
 - **Go version**: 1.23+
 - **Key dependencies**: `github.com/invopop/jsonschema` for schema extraction, `go.opentelemetry.io/otel` for tracing
 - **Interface pattern**: `LanguageModel` interface extends both `Generator` and `Streamer` - use when a model supports both

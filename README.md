@@ -698,6 +698,38 @@ toolResult := provider.NewToolResultContentFromJSON(
 messages = append(messages, provider.ToolResultMessage(toolResult))
 ```
 
+### Structured Tool Results for LLMs
+
+For better LLM interpretation of tool outcomes, use the structured result helpers:
+
+```go
+import "github.com/seifalmotaz/lamar-ai-sdk/tool"
+
+// Return structured success result
+func(ctx context.Context, input WeatherInput) (WeatherOutput, error) {
+    weather, err := fetchWeather(input.Location)
+    if err != nil {
+        // Return structured error for LLM understanding
+        return WeatherOutput{}, fmt.Errorf("location not found: %s", input.Location)
+    }
+    return weather, nil
+}
+
+// Alternative: Use tool helpers for structured responses
+output, err := weatherTool.Execute(ctx, input)
+if err != nil {
+    // Create structured error result
+    result := tool.ErrorResult("api_error", err.Error())
+    // result = {"success": false, "error": "api_error", "message": "..."}
+} else {
+    // Wrap output in success structure
+    result := tool.SuccessResult(output)
+    // result = {"success": true, "data": {...}}
+}
+```
+
+These structured formats help LLMs understand tool outcomes consistently across different tools.
+
 ---
 
 ## Embeddings
@@ -1508,37 +1540,65 @@ fmt.Printf("Total tokens: %d\n", result.TotalUsage.TotalTokens)
 fmt.Printf("Total duration: %v\n", result.TotalDuration)
 ```
 
-### Streaming with Timeout
+### Terminal Response Detection
+
+The agent uses `provider.IsStopMessage()` internally to detect when to stop the loop. This handles edge cases where providers may incorrectly set finish reasons with tool calls:
 
 ```go
-// Stream with timeout
-stream := ag.StreamWithTimeout(ctx, 60*time.Second,
-    agent.WithMessages(
-        provider.UserMessage("What's the weather in Tokyo?"),
-    ),
-)
+// The agent automatically detects terminal responses using:
+// - Tool calls present → not terminal (continue executing tools)
+// - Finish reason "stop", "length", or "content_filter" → terminal
+// - Empty response with no tool calls → terminal
 
-// IMPORTANT: Drain the channel to prevent goroutine leaks
-for event := range stream {
-    // Handle events
+// For custom providers, implement StopMessageChecker:
+type CustomModel struct {
+    // ...
+}
+
+func (m *CustomModel) IsStopMessage(result *provider.GenerateResult) bool {
+    // Custom logic for detecting terminal responses
+    // Return false if tool calls need to be executed
+    if len(result.ToolCalls) > 0 {
+        return false
+    }
+    // Custom provider-specific check
+    return result.FinishReason == "stop" || result.FinishReason == "complete"
+}
+
+// The default implementation handles most cases:
+// provider.IsStopMessage(model, result)
+// Uses model's custom logic if it implements StopMessageChecker,
+// otherwise falls back to default behavior.
+```
+
+### Response Metadata
+
+`GenerateResult` includes optional metadata for specialized responses:
+
+```go
+// Grounding metadata (RAG citations, web search sources)
+if result.Grounding != nil {
+    for _, source := range result.Grounding.Sources {
+        fmt.Printf("Source: %s - %s\n", source.URI, source.Title)
+    }
+    for _, citation := range result.Grounding.Citations {
+        fmt.Printf("Citation: %s (chars %d-%d)\n", 
+            citation.Text, citation.StartIndex, citation.EndIndex)
+    }
+}
+
+// Code execution results (server-side code sandbox)
+if len(result.CodeExecutions) > 0 {
+    for _, ce := range result.CodeExecutions {
+        fmt.Printf("Language: %s\n", ce.Language)
+        fmt.Printf("Code: %s\n", ce.Code)
+        fmt.Printf("Outcome: %s\n", ce.Outcome)
+        fmt.Printf("Output: %s\n", ce.Output)
+    }
 }
 ```
 
-### Combining with Regular Generation
-
-```go
-// Use generate package for simple single calls
-result, _ := generate.Generate(ctx, model, "Hello")
-
-// Use agent package when you need tool loops
-ag := agent.New(model,
-    agent.WithTools(weatherTool),
-    agent.WithStopWhen(agent.StepCountIs(5)),
-)
-result, _ := ag.Invoke(ctx, agent.WithMessages(
-    provider.UserMessage("What's the weather in Tokyo?"),
-))
-```
+Note: These fields are populated by providers that support them (e.g., Gemini with `google_search` for grounding, `code_execution` for code). They are `nil`/empty for providers that don't support these features.
 
 ---
 

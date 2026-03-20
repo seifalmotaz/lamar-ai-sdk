@@ -109,6 +109,70 @@ func IsLanguageModel(m Model) bool {
 	return ok
 }
 
+// StopMessageChecker is an optional interface for providers with custom
+// stop message detection logic. If not implemented, IsStopMessage uses
+// the default logic.
+//
+// This allows providers to handle edge cases where finish_reason may not
+// accurately reflect whether the response is terminal (e.g., some providers
+// incorrectly set "stop" even when tool calls are present).
+type StopMessageChecker interface {
+	// IsStopMessage returns true if the response represents a terminal state
+	// (no more tool calls expected). The result parameter may be nil.
+	IsStopMessage(result *GenerateResult) bool
+}
+
+// DefaultIsStopMessage provides the default implementation for detecting
+// terminal responses. It returns false if tool calls are present, and true
+// if the finish reason is "stop" or if the response has no content and no tool calls.
+//
+// This handles the common case where providers correctly set finish_reason.
+// Providers with edge cases should implement StopMessageChecker.
+func DefaultIsStopMessage(result *GenerateResult) bool {
+	if result == nil {
+		return true
+	}
+
+	// Tool calls take priority - if present, response is not terminal
+	if len(result.ToolCalls) > 0 {
+		return false
+	}
+
+	// Check explicit finish reasons that indicate completion
+	if result.FinishReason == FinishReasonStop ||
+		result.FinishReason == FinishReasonLength ||
+		result.FinishReason == FinishReasonContentFilter {
+		return true
+	}
+
+	// If there's text content, consider it non-terminal only if finish_reason is set
+	if result.Text != "" {
+		return false
+	}
+
+	// Empty response with no tool calls is terminal
+	return true
+}
+
+// IsStopMessage checks if a response represents a terminal state (no more tool calls).
+// If the model implements StopMessageChecker, it uses that provider's custom logic.
+// Otherwise, it falls back to DefaultIsStopMessage.
+//
+// Use this in agent loops to determine when to stop iterating:
+//
+//	for {
+//	    result, err := model.Generate(ctx, req)
+//	    if err != nil { return err }
+//	    if provider.IsStopMessage(model, result) { break }
+//	    // Handle tool calls and continue
+//	}
+func IsStopMessage(m Model, result *GenerateResult) bool {
+	if checker, ok := m.(StopMessageChecker); ok {
+		return checker.IsStopMessage(result)
+	}
+	return DefaultIsStopMessage(result)
+}
+
 // ModelBuilder provides a convenient way to create simple Model instances.
 // Use this for testing or when you need a minimal Model implementation.
 type ModelBuilder struct {

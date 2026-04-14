@@ -11,109 +11,111 @@ import (
 )
 
 func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {
-	return m.provider.wrapStream(ctx, m.id, req, func(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {
-		ollamaReq, err := m.buildRequest(req)
-		if err != nil {
-			return nil, err
-		}
+	return m.provider.wrapper.Stream(ctx, m.id, req, m.streamCore)
+}
 
-		ollamaReq.Stream = true
+func (m *ChatModel) streamCore(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {
+	ollamaReq, err := m.buildRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-		rc, err := m.provider.client.DoStream(ctx, "POST", "/api/chat", ollamaReq)
-		if err != nil {
-			return nil, m.mapError(err)
-		}
+	ollamaReq.Stream = true
 
-		stream := make(chan provider.StreamPart, 100)
-		done := make(chan struct{})
+	rc, err := m.provider.client.DoStream(ctx, "POST", "/api/chat", ollamaReq)
+	if err != nil {
+		return nil, m.mapError(err)
+	}
 
-		result := &provider.StreamResult{
-			Stream: stream,
-			Done:   done,
-		}
+	stream := make(chan provider.StreamPart, 100)
+	done := make(chan struct{})
 
-		go func() {
-			defer close(stream)
-			defer close(done)
-			defer rc.Close()
+	result := &provider.StreamResult{
+		Stream: stream,
+		Done:   done,
+	}
 
-			reader := ndjson.NewReader(rc)
-			var textBuilder strings.Builder
-			var toolCallBuilders map[string]*toolCallBuilder
-			var usage provider.Usage
-			var finishReason provider.FinishReason
-			var streamErr error
+	go func() {
+		defer close(stream)
+		defer close(done)
+		defer rc.Close()
 
-			toolCallBuilders = make(map[string]*toolCallBuilder)
+		reader := ndjson.NewReader(rc)
+		var textBuilder strings.Builder
+		var toolCallBuilders map[string]*toolCallBuilder
+		var usage provider.Usage
+		var finishReason provider.FinishReason
+		var streamErr error
 
-			for {
-				var chunk ChatChunk
-				err := reader.Read(&chunk)
-				if err != nil {
-					if err == io.EOF {
-						break
-					}
-					stream <- provider.StreamErrorPart{Error: err}
-					streamErr = err
+		toolCallBuilders = make(map[string]*toolCallBuilder)
+
+		for {
+			var chunk ChatChunk
+			err := reader.Read(&chunk)
+			if err != nil {
+				if err == io.EOF {
 					break
 				}
+				stream <- provider.StreamErrorPart{Error: err}
+				streamErr = err
+				break
+			}
 
-				if chunk.Message.Content != "" {
-					textBuilder.WriteString(chunk.Message.Content)
-					stream <- provider.StreamTextPart{Delta: chunk.Message.Content}
+			if chunk.Message.Content != "" {
+				textBuilder.WriteString(chunk.Message.Content)
+				stream <- provider.StreamTextPart{Delta: chunk.Message.Content}
+			}
+
+			for _, tc := range chunk.Message.ToolCalls {
+				builder := toolCallBuilders[tc.ID]
+				if builder == nil {
+					builder = &toolCallBuilder{id: tc.ID}
+					toolCallBuilders[tc.ID] = builder
 				}
-
-				for _, tc := range chunk.Message.ToolCalls {
-					builder := toolCallBuilders[tc.ID]
-					if builder == nil {
-						builder = &toolCallBuilder{id: tc.ID}
-						toolCallBuilders[tc.ID] = builder
-					}
-					if tc.Function.Name != "" {
-						builder.name = tc.Function.Name
-					}
-					if tc.Function.Arguments != "" {
-						builder.arguments = append(builder.arguments, tc.Function.Arguments)
-					}
+				if tc.Function.Name != "" {
+					builder.name = tc.Function.Name
 				}
-
-				if chunk.Done {
-					if chunk.DoneReason != "" {
-						finishReason = mapFinishReason(chunk.DoneReason)
-					}
-					usage.PromptTokens = chunk.PromptEvalCount
-					usage.CompletionTokens = chunk.EvalCount
-					usage.TotalTokens = chunk.PromptEvalCount + chunk.EvalCount
+				if tc.Function.Arguments != "" {
+					builder.arguments = append(builder.arguments, tc.Function.Arguments)
 				}
 			}
 
-			for _, builder := range toolCallBuilders {
-				args := strings.Join(builder.arguments, "")
-				tc := provider.ToolCall{
-					ID:    builder.id,
-					Name:  builder.name,
-					Input: json.RawMessage(args),
+			if chunk.Done {
+				if chunk.DoneReason != "" {
+					finishReason = mapFinishReason(chunk.DoneReason)
 				}
-				stream <- provider.StreamToolCallPart{ToolCall: tc}
+				usage.PromptTokens = chunk.PromptEvalCount
+				usage.CompletionTokens = chunk.EvalCount
+				usage.TotalTokens = chunk.PromptEvalCount + chunk.EvalCount
 			}
+		}
 
-			if finishReason == "" {
-				finishReason = provider.FinishReasonStop
+		for _, builder := range toolCallBuilders {
+			args := strings.Join(builder.arguments, "")
+			tc := provider.ToolCall{
+				ID:    builder.id,
+				Name:  builder.name,
+				Input: json.RawMessage(args),
 			}
+			stream <- provider.StreamToolCallPart{ToolCall: tc}
+		}
 
-			stream <- provider.StreamFinishPart{
-				FinishReason: finishReason,
-				Usage:        usage,
-			}
+		if finishReason == "" {
+			finishReason = provider.FinishReasonStop
+		}
 
-			finalText := textBuilder.String()
-			result.Text = func() (string, error) { return finalText, streamErr }
-			result.Usage = func() (provider.Usage, error) { return usage, streamErr }
-			result.FinishReason = func() (provider.FinishReason, error) { return finishReason, streamErr }
-		}()
+		stream <- provider.StreamFinishPart{
+			FinishReason: finishReason,
+			Usage:        usage,
+		}
 
-		return result, nil
-	})
+		finalText := textBuilder.String()
+		result.Text = func() (string, error) { return finalText, streamErr }
+		result.Usage = func() (provider.Usage, error) { return usage, streamErr }
+		result.FinishReason = func() (provider.FinishReason, error) { return finishReason, streamErr }
+	}()
+
+	return result, nil
 }
 
 type toolCallBuilder struct {

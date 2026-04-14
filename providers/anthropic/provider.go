@@ -27,8 +27,6 @@
 package anthropic
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"os"
 
@@ -50,6 +48,7 @@ type Provider struct {
 	customName string
 
 	middlewares []middleware.Middleware
+	wrapper     *middleware.Wrapper
 }
 
 // Option configures the Provider.
@@ -145,6 +144,8 @@ func NewProvider(opts ...Option) *Provider {
 
 	p.client.SetHeader("anthropic-version", "2023-06-01")
 	p.client.SetHeader("Content-Type", "application/json")
+
+	p.wrapper = middleware.NewWrapper("anthropic", p.middlewares)
 
 	return p
 }
@@ -246,115 +247,4 @@ func Claude46Sonnet(opts ...ChatOption) provider.LanguageModel {
 
 func Claude46Opus(opts ...ChatOption) provider.LanguageModel {
 	return NewProvider().Claude46Opus(opts...)
-}
-
-func (p *Provider) hasMiddleware() bool {
-	return len(p.middlewares) > 0
-}
-
-func (p *Provider) wrapGenerate(
-	ctx context.Context,
-	modelID string,
-	req *provider.GenerateRequest,
-	core func(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error),
-) (*provider.GenerateResult, error) {
-	if !p.hasMiddleware() {
-		return core(ctx, req)
-	}
-
-	handler := middleware.Chain(p.middlewares...)(middleware.HandlerFunc(func(ctx context.Context, r middleware.Request) (middleware.Response, error) {
-		result, err := core(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		return &middleware.GenerateResponse{
-			Text:             result.Text,
-			Content:          result.Content,
-			ToolCalls:        result.ToolCalls,
-			FinishReasonData: result.FinishReason,
-			UsageData:        result.Usage,
-		}, nil
-	}))
-
-	mwReq := &middleware.GenerateRequest{
-		ProviderName: p.name(),
-		Model:        modelID,
-		Prompt:       req.Prompt,
-		Messages:     req.Messages,
-		Config:       req.Config,
-	}
-
-	resp, err := handler.Handle(ctx, mwReq)
-	if err != nil {
-		return nil, err
-	}
-
-	genResp, ok := resp.(*middleware.GenerateResponse)
-	if !ok {
-		return nil, &provider.Error{
-			Code:    provider.CodeUnknown,
-			Message: fmt.Sprintf("unexpected response type: %T", resp),
-		}
-	}
-	return &provider.GenerateResult{
-		Text:         genResp.Text,
-		Content:      genResp.Content,
-		ToolCalls:    genResp.ToolCalls,
-		FinishReason: genResp.FinishReasonData,
-		Usage:        genResp.UsageData,
-	}, nil
-}
-
-func (p *Provider) wrapStream(
-	ctx context.Context,
-	modelID string,
-	req *provider.GenerateRequest,
-	core func(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error),
-) (*provider.StreamResult, error) {
-	if !p.hasMiddleware() {
-		return core(ctx, req)
-	}
-
-	handler := middleware.Chain(p.middlewares...)(middleware.HandlerFunc(func(ctx context.Context, r middleware.Request) (middleware.Response, error) {
-		result, err := core(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		return &middleware.StreamResponse{
-			StreamChan:       result.Stream,
-			DoneChan:         result.Done,
-			TextFunc:         result.Text,
-			UsageFunc:        result.Usage,
-			FinishReasonFunc: result.FinishReason,
-		}, nil
-	}))
-
-	mwReq := &middleware.StreamRequest{
-		ProviderName: p.name(),
-		Model:        modelID,
-		Prompt:       req.Prompt,
-		Messages:     req.Messages,
-		Config:       req.Config,
-	}
-
-	resp, err := handler.Handle(ctx, mwReq)
-	if err != nil {
-		return nil, err
-	}
-
-	streamResp, ok := resp.(*middleware.StreamResponse)
-	if !ok {
-		return nil, &provider.Error{
-			Code:    provider.CodeUnknown,
-			Message: fmt.Sprintf("unexpected response type: %T", resp),
-		}
-	}
-
-	return &provider.StreamResult{
-		Stream:       streamResp.StreamChan,
-		Done:         streamResp.DoneChan,
-		Text:         streamResp.TextFunc,
-		Usage:        streamResp.UsageFunc,
-		FinishReason: streamResp.FinishReasonFunc,
-	}, nil
 }

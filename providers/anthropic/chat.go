@@ -41,7 +41,7 @@ func (m *ChatModel) ModelID() string {
 }
 
 func (m *ChatModel) Generate(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-	return m.provider.wrapGenerate(ctx, m.id, req, m.generateCore)
+	return m.provider.wrapper.Generate(ctx, m.id, req, m.generateCore)
 }
 
 func (m *ChatModel) generateCore(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
@@ -216,7 +216,7 @@ func convertContainer(c *ContainerConfig) *ContainerAPI {
 }
 
 func (m *ChatModel) Stream(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {
-	return m.provider.wrapStream(ctx, m.id, req, m.streamCore)
+	return m.provider.wrapper.Stream(ctx, m.id, req, m.streamCore)
 }
 
 func (m *ChatModel) streamCore(ctx context.Context, req *provider.GenerateRequest) (*provider.StreamResult, error) {

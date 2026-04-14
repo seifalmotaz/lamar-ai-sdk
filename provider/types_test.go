@@ -505,3 +505,165 @@ func TestModelInfo_Methods(t *testing.T) {
 		t.Error("Should not have CapAudio")
 	}
 }
+
+func TestGroundingMetadata(t *testing.T) {
+	t.Run("basic grounding", func(t *testing.T) {
+		gm := GroundingMetadata{
+			Sources: []GroundingSource{
+				{Index: 0, URI: "https://example.com/doc1", Title: "Document 1"},
+				{Index: 1, URI: "https://example.com/doc2", Title: "Document 2"},
+			},
+			Citations: []Citation{
+				{Text: "Hello", StartIndex: 0, EndIndex: 5, SourceIndices: []int{0}},
+				{Text: "World", StartIndex: 6, EndIndex: 11, SourceIndices: []int{1}},
+			},
+		}
+
+		if len(gm.Sources) != 2 {
+			t.Errorf("Sources length = %d, want 2", len(gm.Sources))
+		}
+		if gm.Sources[0].URI != "https://example.com/doc1" {
+			t.Errorf("Source URI = %q, want %q", gm.Sources[0].URI, "https://example.com/doc1")
+		}
+		if len(gm.Citations) != 2 {
+			t.Errorf("Citations length = %d, want 2", len(gm.Citations))
+		}
+	})
+
+	t.Run("JSON roundtrip", func(t *testing.T) {
+		original := GroundingMetadata{
+			Sources: []GroundingSource{
+				{Index: 0, URI: "https://example.com/source", Title: "Source"},
+			},
+			Citations: []Citation{
+				{Text: "citation text", StartIndex: 10, EndIndex: 25, SourceIndices: []int{0, 1}},
+			},
+		}
+
+		data, err := json.Marshal(original)
+		if err != nil {
+			t.Fatalf("Failed to marshal: %v", err)
+		}
+
+		var restored GroundingMetadata
+		if err := json.Unmarshal(data, &restored); err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		if len(restored.Sources) != len(original.Sources) {
+			t.Errorf("Sources length mismatch: got %d, want %d", len(restored.Sources), len(original.Sources))
+		}
+		if restored.Sources[0].URI != original.Sources[0].URI {
+			t.Errorf("Source URI = %q, want %q", restored.Sources[0].URI, original.Sources[0].URI)
+		}
+		if len(restored.Citations) != len(original.Citations) {
+			t.Errorf("Citations length mismatch: got %d, want %d", len(restored.Citations), len(original.Citations))
+		}
+	})
+
+	t.Run("nil grounding in GenerateResult", func(t *testing.T) {
+		result := GenerateResult{
+			Text:         "Hello",
+			FinishReason: FinishReasonStop,
+		}
+
+		if result.Grounding != nil {
+			t.Error("Grounding should be nil by default")
+		}
+	})
+
+	t.Run("grounding in GenerateResult", func(t *testing.T) {
+		result := GenerateResult{
+			Text:         "Hello",
+			FinishReason: FinishReasonStop,
+			Grounding: &GroundingMetadata{
+				Sources: []GroundingSource{
+					{Index: 0, URI: "https://example.com"},
+				},
+			},
+		}
+
+		if result.Grounding == nil {
+			t.Error("Grounding should not be nil")
+		}
+		if len(result.Grounding.Sources) != 1 {
+			t.Errorf("Sources length = %d, want 1", len(result.Grounding.Sources))
+		}
+	})
+}
+
+func TestCodeExecution(t *testing.T) {
+	t.Run("basic code execution", func(t *testing.T) {
+		ce := CodeExecution{
+			Language: "PYTHON",
+			Code:     "print('hello')",
+			Outcome:  "OUTCOME_OK",
+			Output:   "hello\n",
+		}
+
+		if ce.Language != "PYTHON" {
+			t.Errorf("Language = %q, want %q", ce.Language, "PYTHON")
+		}
+		if ce.Code != "print('hello')" {
+			t.Errorf("Code = %q, want %q", ce.Code, "print('hello')")
+		}
+	})
+
+	t.Run("JSON roundtrip", func(t *testing.T) {
+		original := CodeExecution{
+			Language: "PYTHON",
+			Code:     "x = 1 + 2\nprint(x)",
+			Outcome:  "OUTCOME_OK",
+			Output:   "3\n",
+		}
+
+		data, err := json.Marshal(original)
+		if err != nil {
+			t.Fatalf("Failed to marshal: %v", err)
+		}
+
+		var restored CodeExecution
+		if err := json.Unmarshal(data, &restored); err != nil {
+			t.Fatalf("Failed to unmarshal: %v", err)
+		}
+
+		if restored.Language != original.Language {
+			t.Errorf("Language = %q, want %q", restored.Language, original.Language)
+		}
+		if restored.Code != original.Code {
+			t.Errorf("Code = %q, want %q", restored.Code, original.Code)
+		}
+		if restored.Outcome != original.Outcome {
+			t.Errorf("Outcome = %q, want %q", restored.Outcome, original.Outcome)
+		}
+	})
+
+	t.Run("code executions in GenerateResult", func(t *testing.T) {
+		result := GenerateResult{
+			Text:         "Here is the result:",
+			FinishReason: FinishReasonStop,
+			CodeExecutions: []CodeExecution{
+				{Language: "PYTHON", Code: "print(1+1)", Outcome: "OUTCOME_OK", Output: "2\n"},
+				{Language: "PYTHON", Code: "print(2+2)", Outcome: "OUTCOME_OK", Output: "4\n"},
+			},
+		}
+
+		if len(result.CodeExecutions) != 2 {
+			t.Errorf("CodeExecutions length = %d, want 2", len(result.CodeExecutions))
+		}
+		if result.CodeExecutions[0].Language != "PYTHON" {
+			t.Errorf("Language = %q, want %q", result.CodeExecutions[0].Language, "PYTHON")
+		}
+	})
+
+	t.Run("nil code executions by default", func(t *testing.T) {
+		result := GenerateResult{
+			Text:         "Hello",
+			FinishReason: FinishReasonStop,
+		}
+
+		if result.CodeExecutions != nil && len(result.CodeExecutions) != 0 {
+			t.Error("CodeExecutions should be nil/empty by default")
+		}
+	})
+}

@@ -92,13 +92,37 @@ func main() {
 	fmt.Printf("Tokens: %d\n", result.Usage().TotalTokens)
 }
 
-// Example of sending tool results back to continue conversation
+// Example of using SuccessResult and ErrorResult for structured tool responses
 func _() {
-	// ... after executing tools ...
+	// Create a tool that returns structured error information
+	weatherToolWithErrorHandling := tool.NewTool("get_weather", "Get current weather for a location",
+		func(ctx context.Context, input WeatherInput) (WeatherOutput, error) {
+			if input.Location == "" {
+				// Return structured error for LLM interpretation
+				return WeatherOutput{}, fmt.Errorf("location is required")
+			}
+
+			// Simulate API call
+			if input.Location == "unknown" {
+				// Return structured result with success=false for better LLM interpretation
+				var output WeatherOutput
+				return output, nil
+			}
+
+			return WeatherOutput{
+				Temperature: 22.5,
+				Condition:   "sunny",
+				Humidity:    65,
+			}, nil
+		},
+	)
+
+	// Example of sending tool results back to continue conversation
+	_ = weatherToolWithErrorHandling
 	var _ = func() {
 		var toolResults []provider.ToolResult
 		// for _, tc := range result.ToolCalls {
-		// 	output, _ := weatherTool.Execute(context.Background(), tc.Input)
+		// 	output, _ := weatherToolWithErrorHandling.Execute(context.Background(), tc.Input)
 		// 	toolResults = append(toolResults, provider.ToolResult{
 		// 		ID:     tc.ID,
 		// 		Result: output,

@@ -251,7 +251,9 @@ func (a *Agent) Invoke(ctx context.Context, opts ...InvokeOption) (*Result, erro
 			}
 		}
 
-		if len(response.ToolCalls) == 0 {
+		// Check if we should stop (no tool calls = terminal response)
+		// Use IsStopMessage for robust detection considering provider edge cases
+		if provider.IsStopMessage(a.model, response) {
 			result := a.buildResult(steps, messages)
 			if callbacks.OnFinish != nil {
 				if err := callbacks.OnFinish(ctx, result); err != nil {

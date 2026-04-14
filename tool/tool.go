@@ -106,3 +106,38 @@ func ToDefinitions(tools ...Tool) []provider.ToolDefinition {
 	}
 	return defs
 }
+
+// SuccessResult wraps successful output as json.RawMessage with a consistent
+// structure that helps LLMs interpret tool results. The returned JSON has the form:
+//
+//	{"success": true, "data": <output>}
+//
+// Use this when you want structured success responses that LLMs can easily parse.
+func SuccessResult(data interface{}) json.RawMessage {
+	result := map[string]interface{}{
+		"success": true,
+		"data":    data,
+	}
+	b, _ := json.Marshal(result)
+	return json.RawMessage(b)
+}
+
+// ErrorResult creates a structured error result for LLM interpretation.
+// The errorType should be a machine-readable error code (e.g., "not_found",
+// "timeout", "invalid_input"). The message should be human-readable.
+//
+// The returned JSON has the form:
+//
+//	{"success": false, "error": "<errorType>", "message": "<message>"}
+//
+// Use this when tool execution fails and you want to provide structured error
+// information that helps the LLM understand what went wrong and potentially retry.
+func ErrorResult(errorType, message string) json.RawMessage {
+	result := map[string]interface{}{
+		"success": false,
+		"error":   errorType,
+		"message": message,
+	}
+	b, _ := json.Marshal(result)
+	return json.RawMessage(b)
+}

@@ -19,19 +19,21 @@ func (m *ChatModel) Provider() string { return "openai" }
 func (m *ChatModel) ModelID() string  { return m.id }
 
 func (m *ChatModel) Generate(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-	return m.provider.wrapGenerate(ctx, m.id, req, func(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-		openaiReq, err := m.buildRequest(req)
-		if err != nil {
-			return nil, err
-		}
+	return m.provider.wrapper.Generate(ctx, m.id, req, m.generateCore)
+}
 
-		var resp ChatCompletionResponse
-		if err := m.provider.client.Post(ctx, "/chat/completions", openaiReq, &resp); err != nil {
-			return nil, err
-		}
+func (m *ChatModel) generateCore(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
+	openaiReq, err := m.buildRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-		return m.buildResult(&resp)
-	})
+	var resp ChatCompletionResponse
+	if err := m.provider.client.Post(ctx, "/chat/completions", openaiReq, &resp); err != nil {
+		return nil, err
+	}
+
+	return m.buildResult(&resp)
 }
 
 func (m *ChatModel) buildRequest(req *provider.GenerateRequest) (*ChatCompletionRequest, error) {

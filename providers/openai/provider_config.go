@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/seifalmotaz/lamar-ai-sdk/internal/httpx"
+	"github.com/seifalmotaz/lamar-ai-sdk/middleware"
 )
 
 // Config holds provider configuration.
@@ -25,5 +26,6 @@ func NewProviderWithConfig(cfg Config) *Provider {
 		baseURL: baseURL,
 	}
 	p.client.SetHeader("Authorization", "Bearer "+cfg.APIKey)
+	p.wrapper = middleware.NewWrapper("openai", p.middlewares)
 	return p
 }

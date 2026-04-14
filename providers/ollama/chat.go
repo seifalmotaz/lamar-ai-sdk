@@ -20,19 +20,21 @@ func (m *ChatModel) ModelID() string  { return m.id }
 var _ provider.LanguageModel = (*ChatModel)(nil)
 
 func (m *ChatModel) Generate(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-	return m.provider.wrapGenerate(ctx, m.id, req, func(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
-		ollamaReq, err := m.buildRequest(req)
-		if err != nil {
-			return nil, err
-		}
+	return m.provider.wrapper.Generate(ctx, m.id, req, m.generateCore)
+}
 
-		var resp ChatResponse
-		if err := m.provider.client.Post(ctx, "/api/chat", ollamaReq, &resp); err != nil {
-			return nil, m.mapError(err)
-		}
+func (m *ChatModel) generateCore(ctx context.Context, req *provider.GenerateRequest) (*provider.GenerateResult, error) {
+	ollamaReq, err := m.buildRequest(req)
+	if err != nil {
+		return nil, err
+	}
 
-		return buildResult(&resp), nil
-	})
+	var resp ChatResponse
+	if err := m.provider.client.Post(ctx, "/api/chat", ollamaReq, &resp); err != nil {
+		return nil, m.mapError(err)
+	}
+
+	return buildResult(&resp), nil
 }
 
 func (m *ChatModel) buildRequest(req *provider.GenerateRequest) (*ChatRequest, error) {

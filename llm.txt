@@ -1,0 +1,1014 @@
+# Lamar AI SDK - Usage Reference
+
+Lamar SDK is a Go alternative to Vercel's TypeScript AI SDK, providing a unified, type-safe interface for building AI applications with LLMs.
+
+## Quick Start
+
+**One-line description:** Type-safe Go SDK for AI models with a unified interface across providers.
+
+**Installation:**
+```
+go get github.com/seifalmotaz/lamar-ai-sdk
+```
+
+**Requirements:** Go 1.23+
+
+**Minimal example:**
+```go
+import (
+    "context"
+    "github.com/seifalmotaz/lamar-ai-sdk/providers/openai"
+    "github.com/seifalmotaz/lamar-ai-sdk/generate"
+)
+
+func main() {
+    client := openai.NewProvider()
+    model := client.GPT5Mini()
+    
+    result, err := generate.Generate(context.Background(), model, "Hello, world!")
+    if err != nil {
+        panic(err)
+    }
+    println(result.Text())
+}
+```
+
+---
+
+## Provider Initialization
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/providers/openai`
+
+```go
+// Uses OPENAI_API_KEY env var
+client := openai.NewProvider()
+
+// Or with options
+client := openai.NewProvider(
+    openai.APIKey("your-key"),
+    openai.BaseURL("https://custom.com/v1"),
+)
+
+// Model factory methods
+model := client.GPT5Mini()                  // provider.LanguageModel
+embeddingModel := client.TextEmbedding3Small()  // provider.EmbeddingModel
+imageModel := client.DALLE3()              // provider.ImageModel
+speechModel := client.TTS1()               // provider.SpeechModel
+transcriptionModel := client.Whisper1()     // provider.TranscriptionModel
+```
+
+---
+
+## Text Generation (`generate` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/generate`
+
+**Function:**
+```go
+func Generate(ctx context.Context, model provider.Generator, prompt string, opts ...Option) (*Result, error)
+```
+
+**Options:**
+```go
+System(prompt string)              // System prompt
+Messages(msgs ...provider.Message) // Conversation history
+MaxTokens(n int)                  // Max tokens to generate
+Temperature(t float64)            // Randomness (0.0-2.0)
+TopP(p float64)                   // Nucleus sampling (0.0-1.0)
+TopK(k int)                       // Top-k sampling
+StopSequences(seqs ...string)     // Stop sequences
+Tools(tools ...provider.ToolDefinition) // Available tools
+ToolChoice(tc provider.ToolChoice)      // Tool choice strategy
+Seed(seed int)                    // Deterministic sampling
+ResponseFormat(rf provider.ResponseFormat) // Response format
+WithTimeout(d time.Duration)      // Custom timeout
+WithNoTimeout()                   // Disable timeout
+WithLogger(l provider.Logger)      // Logger
+WithMetrics(m provider.MetricsCollector) // Metrics
+```
+
+**Result methods:**
+```go
+result.Text() string
+result.Content() []provider.Content
+result.ToolCalls() []provider.ToolCall
+result.FinishReason() provider.FinishReason
+result.Usage() provider.Usage
+```
+
+**Example:**
+```go
+result, err := generate.Generate(ctx, model, "Explain Go in simple terms",
+    generate.MaxTokens(500),
+    generate.Temperature(0.7),
+)
+```
+
+---
+
+## Streaming Generation (`stream` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/stream`
+
+**Function:**
+```go
+func Stream(ctx context.Context, model provider.Streamer, prompt string, opts ...Option) *Result
+```
+
+**Options:** Same as `generate` package (System, Messages, MaxTokens, Temperature, TopP, TopK, StopSequences, Tools, ToolChoice, Seed, ResponseFormat, WithTimeout, WithNoTimeout, WithLogger, WithMetrics)
+
+**Result methods:**
+```go
+result.Stream() <-chan provider.StreamPart     // Consume stream parts
+result.Text() (string, error)                  // Get full text
+result.Usage() (provider.Usage, error)         // Get usage stats
+result.FinishReason() (provider.FinishReason, error) // Get finish reason
+result.Err() error                             // Get any error
+result.Wait() <-chan struct{}                 // Wait for completion
+```
+
+**Stream part types (type switch on StreamPart):**
+```go
+provider.StreamTextPart{Delta string}      // Text chunk
+provider.StreamToolCallPart{ToolCall provider.ToolCall} // Tool call
+provider.StreamFinishPart{FinishReason, Usage}         // Completion
+provider.StreamErrorPart{Error error}       // Error
+```
+
+**Example:**
+```go
+result := stream.Stream(ctx, model, "Tell me a story")
+
+for part := range result.Stream() {
+    switch p := part.(type) {
+    case provider.StreamTextPart:
+        fmt.Print(p.Delta)
+    case provider.StreamFinishPart:
+        fmt.Println("\nFinished:", p.FinishReason)
+    case provider.StreamErrorPart:
+        log.Printf("Error: %v", p.Error)
+    }
+}
+```
+
+---
+
+## Structured Output
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/generate` or `github.com/seifalmotaz/lamar-ai-sdk/stream`
+
+**Non-streaming:**
+```go
+func GenerateObject[T any](ctx context.Context, model provider.Generator, prompt string, opts ...Option) (*ObjectResult[T], error)
+
+type ObjectResult[T any] struct {
+    Object       T
+    FinishReason provider.FinishReason
+    Usage        provider.Usage
+}
+```
+
+**Streaming:**
+```go
+func StreamObject[T any](ctx context.Context, model provider.Streamer, prompt string, opts ...Option) *StreamObjectResult[T]
+
+type StreamObjectResult[T any] struct {
+    // Methods:
+    Stream() <-chan ObjectPart[T]
+    Object() (T, error)
+    Text() (string, error)
+    Usage() (provider.Usage, error)
+    FinishReason() (provider.FinishReason, error)
+    Err() error
+    Wait() <-chan struct{}
+}
+
+type ObjectPart[T any] struct {
+    Type   string  // "object", "text-delta", "error", "finish"
+    Object T       // Parsed object
+    Delta  string  // Text delta
+    Error  error   // Error if type="error"
+}
+```
+
+**jsonschema tags:**
+```go
+required        // Field is required
+description     // Field description
+minimum         // Min number value
+maximum         // Max number value
+minLength       // Min string length
+maxLength       // Max string length
+enum            // Enum values
+minItems        // Min array items
+maxItems        // Max array items
+```
+
+**Example:**
+```go
+type Person struct {
+    Name        string   `json:"name" jsonschema:"required,description=Full name"`
+    Age         int      `json:"age" jsonschema:"required,minimum=0"`
+    Occupation  string   `json:"occupation" jsonschema:"description=Job title"`
+    Skills      []string `json:"skills" jsonschema:"minItems=1"`
+}
+
+// Non-streaming
+result, err := generate.GenerateObject[Person](ctx, model, "Generate a random person")
+fmt.Println(result.Object.Name, result.Object.Age)
+
+// Streaming
+streamResult := stream.StreamObject[Person](ctx, model, "Generate a person")
+for part := range streamResult.Stream() {
+    if part.Type == "object" {
+        fmt.Printf("Partial: %+v\n", part.Object)
+    }
+}
+final, err := streamResult.Object()
+```
+
+---
+
+## Tool/Function Calling (`tool` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/tool`
+
+**Create a type-safe tool:**
+```go
+func NewTool[In, Out any](name, description string, fn func(ctx context.Context, input In) (Out, error)) Tool
+
+// Tool interface:
+type Tool interface {
+    Name() string
+    Description() string
+    InputSchema() json.RawMessage
+    Execute(ctx context.Context, input json.RawMessage) (json.RawMessage, error)
+}
+```
+
+**Convert to definitions for generate options:**
+```go
+func ToDefinition(t Tool) provider.ToolDefinition
+func ToDefinitions(tools ...Tool) []provider.ToolDefinition
+```
+
+**Result helpers:**
+```go
+func SuccessResult(data interface{}) json.RawMessage   // {"success": true, "data": ...}
+func ErrorResult(errorType, message string) json.RawMessage // {"success": false, "error": "...", "message": "..."}
+```
+
+**Tool choice constructors:**
+```go
+provider.ToolChoiceAuto()       // Model decides
+provider.ToolChoiceNone()       // No tools
+provider.ToolChoiceRequired()   // Must call tool
+provider.ToolChoiceNamed(name)   // Call specific tool
+```
+
+**Example:**
+```go
+// Define tool
+type WeatherInput struct {
+    City string `json:"city" jsonschema:"required"`
+}
+
+type WeatherOutput struct {
+    Temperature float64 `json:"temperature"`
+    Condition  string  `json:"condition"`
+}
+
+weatherTool := tool.NewTool[WeatherInput, WeatherOutput](
+    "get_weather",
+    "Get current weather for a location",
+    func(ctx context.Context, input WeatherInput) (WeatherOutput, error) {
+        return WeatherOutput{Temperature: 22.5, Condition: "sunny"}, nil
+    },
+)
+
+// Use in generate
+result, err := generate.Generate(ctx, model, "What's the weather in Tokyo?",
+    generate.Tools(tool.ToDefinitions(weatherTool)...),
+    generate.ToolChoice(provider.ToolChoiceAuto()),
+)
+
+// Handle tool calls
+for _, tc := range result.ToolCalls() {
+    fmt.Printf("Tool: %s, Input: %s\n", tc.Name, string(tc.Input))
+    
+    // Execute tool and create result message
+    toolResult := tool.SuccessResult(map[string]any{"temp": 22.5})
+    // Use tool.NewToolCallContent and provider.NewToolResultContent to build messages
+}
+```
+
+---
+
+## Embeddings (`embed` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/embed`
+
+**Functions:**
+```go
+func Embed(ctx context.Context, model provider.EmbeddingModel, text string, opts ...Option) (*Result, error)
+func EmbedBatch(ctx context.Context, model provider.EmbeddingModel, texts []string, opts ...Option) (*BatchResult, error)
+```
+
+**Options:**
+```go
+WithTimeout(d time.Duration)
+WithNoTimeout()
+WithLogger(l provider.Logger)
+WithMetrics(m provider.MetricsCollector)
+```
+
+**Results:**
+```go
+type Result struct {
+    Embedding []float64  // Single embedding vector
+    Usage     provider.Usage
+}
+
+type BatchResult struct {
+    Embeddings [][]float64  // Multiple embedding vectors
+    Usage      provider.Usage
+}
+```
+
+**Example:**
+```go
+// Single embedding
+result, err := embed.Embed(ctx, model, "Hello, world!")
+fmt.Printf("Dimension: %d\n", len(result.Embedding))
+
+// Batch embeddings
+results, err := embed.EmbedBatch(ctx, model, []string{"Hello", "World"})
+for i, emb := range results.Embeddings {
+    fmt.Printf("Embedding %d: %d dims\n", i, len(emb))
+}
+```
+
+---
+
+## Multimodal Content (`provider` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/provider`
+
+**Content constructors:**
+```go
+provider.Text(string) TextContent
+provider.Image(data []byte, mediaType string) ImageContent
+provider.ImageFromURL(url string) ImageContent
+provider.Audio(data []byte, mediaType string) AudioContent
+provider.AudioFromURL(url string) AudioContent
+provider.NewToolCallContent(id, name string, input json.RawMessage) ToolCallContent
+provider.NewToolCallContentFromJSON(id, name string, input any) ToolCallContent
+provider.NewToolResultContent(id, name string, result json.RawMessage, isError bool) ToolResultContent
+provider.NewToolResultContentFromJSON(id, name string, result any, isError bool) ToolResultContent
+```
+
+**Message constructors:**
+```go
+provider.SystemMessage(text string) Message
+provider.UserMessage(text string) Message
+provider.UserMessageWithContent(content ...Content) Message
+provider.AssistantMessage(text string) Message
+provider.AssistantMessageWithToolCalls(toolCalls ...ToolCallContent) Message
+provider.ToolResultMessage(toolResult ToolResultContent) Message
+```
+
+**Content types:**
+```go
+type TextContent struct{ Text string }
+type ImageContent struct{ Data []byte, MediaType string }
+type AudioContent struct{ Data []byte, MediaType string }
+type ToolCallContent struct{ ID, Name string, Input json.RawMessage }
+type ToolResultContent struct{ ID, Name string, Result json.RawMessage, IsError bool }
+type ReasoningContent struct{ Text string }
+```
+
+**Type switching example:**
+```go
+switch c := content.(type) {
+case provider.TextContent:
+    fmt.Println("Text:", c.Text)
+case provider.ImageContent:
+    fmt.Printf("Image: %d bytes, %s\n", len(c.Data), c.MediaType)
+case provider.AudioContent:
+    fmt.Printf("Audio: %d bytes, %s\n", len(c.Data), c.MediaType)
+case provider.ToolCallContent:
+    fmt.Printf("Tool call: %s(%s)\n", c.Name, string(c.Input))
+case provider.ToolResultContent:
+    fmt.Printf("Tool result from %s: %s\n", c.Name, string(c.Result))
+case provider.ReasoningContent:
+    fmt.Println("Reasoning:", c.Text)
+}
+```
+
+---
+
+## Image Generation (`image` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/image`
+
+**Function:**
+```go
+func Generate(ctx context.Context, model provider.ImageModel, prompt string, opts ...Option) (*Result, error)
+```
+
+**Options:**
+```go
+WithSize(size string)       // e.g., "1024x1024"
+WithQuality(quality string) // e.g., "standard", "hd"
+WithFormat(format string)   // e.g., "png", "jpeg", "webp"
+WithBackground(bg string)   // Background color
+WithN(n int)                // Number of images
+WithTimeout(d time.Duration)
+WithNoTimeout()
+WithLogger(l provider.Logger)
+WithMetrics(m provider.MetricsCollector)
+```
+
+**Result:**
+```go
+type Result struct {
+    Images         [][]byte   // Generated images
+    MediaType      string     // e.g., "image/png"
+    RevisedPrompts []string   // Provider revised prompts
+}
+```
+
+**Example:**
+```go
+result, err := image.Generate(ctx, model, "A cute puppy playing in the park",
+    image.WithSize("1024x1024"),
+    image.WithN(2),
+)
+for i, img := range result.Images {
+    os.WriteFile(fmt.Sprintf("puppy_%d.png", i), img, 0644)
+}
+```
+
+---
+
+## Speech Synthesis (`speech` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/speech`
+
+**Function:**
+```go
+func Synthesize(ctx context.Context, model provider.SpeechModel, text string, opts ...Option) (*Result, error)
+```
+
+**Options:**
+```go
+WithVoice(voice string)              // Voice identifier
+WithFormat(format string)            // Audio format
+WithSpeed(speed float64)             // Playback speed
+WithInstructions(instructions string) // Voice instructions
+WithTimeout(d time.Duration)
+WithNoTimeout()
+WithLogger(l provider.Logger)
+WithMetrics(m provider.MetricsCollector)
+```
+
+**Result:**
+```go
+type Result struct {
+    Audio     []byte  // Generated audio
+    MediaType string  // e.g., "audio/mp3"
+}
+```
+
+**Example:**
+```go
+result, err := speech.Synthesize(ctx, model, "Hello, world!",
+    speech.WithVoice("alloy"),
+    speech.WithFormat("mp3"),
+)
+os.WriteFile("hello.mp3", result.Audio, 0644)
+```
+
+---
+
+## Audio Transcription (`transcription` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/transcription`
+
+**Function:**
+```go
+func Transcribe(ctx context.Context, model provider.TranscriptionModel, audio []byte, mediaType string, opts ...Option) (*Result, error)
+```
+
+**Options:**
+```go
+WithLanguage(lang string)        // Language code
+WithPrompt(prompt string)        // Transcription prompt
+WithTimeout(d time.Duration)
+WithNoTimeout()
+WithLogger(l provider.Logger)
+WithMetrics(m provider.MetricsCollector)
+```
+
+**Result:**
+```go
+type Result struct {
+    Text     string                       // Transcribed text
+    Segments []provider.TranscriptSegment // Word-level timing
+    Language string                      // Detected language
+    Duration float64                     // Audio duration
+}
+
+type TranscriptSegment struct {
+    Text        string
+    StartSecond float64
+    EndSecond   float64
+}
+```
+
+**Example:**
+```go
+audioData, _ := os.ReadFile("audio.mp3")
+result, err := transcription.Transcribe(ctx, model, audioData, "audio/mp3")
+fmt.Println("Transcription:", result.Text)
+for _, seg := range result.Segments {
+    fmt.Printf("[%.1fs-%.1fs] %s\n", seg.StartSecond, seg.EndSecond, seg.Text)
+}
+```
+
+---
+
+## Agent Framework (`agent` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/agent`
+
+**Creation:**
+```go
+func New(model provider.LanguageModel, opts ...Option) *Agent
+```
+
+**Agent options:**
+```go
+WithTools(tools ...tool.Tool)                  // Available tools
+WithStopWhen(conditions ...StopCondition)       // Stop conditions
+WithSystem(system string)                       // System prompt
+WithToolChoice(choice provider.ToolChoice)      // Tool choice
+WithTemperature(temp float64)                  // Temperature
+WithMaxTokens(tokens int)                      // Max tokens
+WithMaxRetries(n int)                          // Max retries (default: 2)
+WithCallbacks(cb Callbacks)                    // Callbacks
+WithPrepareStep(fn PrepareStep)                // Dynamic config per step
+WithExperimentalContext(ctx any)              // Custom context
+```
+
+**Stop conditions:**
+```go
+func StepCountIs(n int) StopCondition              // Stop after n steps
+func HasToolCall(name string) StopCondition         // Stop when tool called
+func HasFinishReason(reasons ...provider.FinishReason) StopCondition
+func StopWhenAny(conditions ...StopCondition) StopCondition  // OR logic
+func StopWhenAll(conditions ...StopCondition) StopCondition // AND logic
+```
+
+**Synchronous execution:**
+```go
+func (a *Agent) Invoke(ctx context.Context, opts ...InvokeOption) (*Result, error)
+
+type InvokeOption func(*invokeConfig)
+func WithMessages(messages ...provider.Message) InvokeOption
+func WithInvokeSystem(system string) InvokeOption
+```
+
+**Streaming execution:**
+```go
+func (a *Agent) Stream(ctx context.Context, opts ...StreamOption) <-chan StreamEvent
+
+type StreamOption func(*streamConfig)
+func WithStreamMessages(messages ...provider.Message) StreamOption
+func WithStreamSystem(system string) StreamOption
+func WithStreamCallbacks(cb Callbacks) StreamOption
+```
+
+**Callbacks struct:**
+```go
+type Callbacks struct {
+    OnStart           func(ctx context.Context, messages []provider.Message) error
+    OnStepStart       func(ctx context.Context, stepNumber int, messages []provider.Message) error
+    OnStepFinish      func(ctx context.Context, result StepResult) error
+    OnToolCallStart   func(ctx context.Context, toolCall provider.ToolCall) error
+    OnToolCallFinish  func(ctx context.Context, result ToolExecutionResult) error
+    OnFinish          func(ctx context.Context, result *Result) error
+    OnError           func(ctx context.Context, stepNumber int, err error) error // Return nil to suppress and continue
+}
+```
+
+**Stream events (type switch):**
+```go
+StreamEventStepStart{StepNumber int, Messages []provider.Message}
+StreamEventContentDelta{Delta string}
+StreamEventToolCall{ToolCall provider.ToolCall}
+StreamEventToolResult{Result ToolExecutionResult}
+StreamEventStepFinish{Result StepResult}
+StreamEventFinish{Result *Result}
+StreamEventError{Error error}
+```
+
+**Results:**
+```go
+type Result struct {
+    Steps         []StepResult
+    FinalMessages []provider.Message
+    FinalContent  []provider.Content
+    FinalText     string
+    TotalUsage    provider.Usage
+    TotalDuration time.Duration
+    FinishReason  provider.FinishReason
+}
+
+type StepResult struct {
+    StepNumber   int
+    Content      []provider.Content
+    ToolCalls    []provider.ToolCall
+    ToolResults  []ToolExecutionResult
+    Usage        provider.Usage
+    FinishReason provider.FinishReason
+    Model        ModelInfo
+    Duration     time.Duration
+}
+
+type ToolExecutionResult struct {
+    ToolCallID, ToolName string
+    Input, Output        any
+    Error                error
+    Duration             time.Duration
+}
+```
+
+**PrepareStep for dynamic configuration:**
+```go
+type PrepareStep func(ctx context.Context, params PrepareStepParams) *PrepareStepResult
+
+type PrepareStepParams struct {
+    StepNumber      int
+    Steps           []StepResult
+    Model           provider.LanguageModel
+    Messages        []provider.Message
+    ToolCalls       []provider.ToolCall
+    ExperimentalCtx any
+}
+
+type PrepareStepResult struct {
+    Model        provider.LanguageModel
+    Tools        []tool.Tool
+    ToolChoice   *provider.ToolChoice
+    System       *string
+    MaxTokens    *int
+    Temperature  *float64
+    ExperimentalCtx any
+}
+```
+
+**Example:**
+```go
+// Create agent
+ag := agent.New(model,
+    agent.WithTools(weatherTool, calculatorTool),
+    agent.WithStopWhen(
+        agent.StopWhenAny(
+            agent.StepCountIs(10),
+            agent.HasToolCall("submit_answer"),
+        ),
+    ),
+    agent.WithCallbacks(agent.Callbacks{
+        OnStepFinish: func(ctx context.Context, step agent.StepResult) error {
+            log.Printf("Step %d completed", step.StepNumber)
+            return nil
+        },
+    }),
+)
+
+// Invoke
+result, err := ag.Invoke(ctx,
+    agent.WithMessages(provider.UserMessage("What's the weather in Tokyo and New York?")),
+)
+
+// Stream
+stream := ag.Stream(ctx,
+    agent.WithStreamMessages(provider.UserMessage("Tell me a story")),
+)
+for event := range stream {
+    switch e := event.(type) {
+    case agent.StreamEventStepStart:
+        fmt.Printf("Step %d starting\n", e.StepNumber)
+    case agent.StreamEventToolCall:
+        fmt.Printf("Tool: %s\n", e.ToolCall.Name)
+    case agent.StreamEventFinish:
+        fmt.Println("Final:", e.Result.FinalText)
+    case agent.StreamEventError:
+        log.Printf("Error: %v", e.Error)
+    }
+}
+```
+
+---
+
+## Middleware System (`middleware` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/middleware`
+
+**Chaining:**
+```go
+func Chain(middlewares ...Middleware) Middleware
+```
+
+**Available middleware:**
+```go
+// Timeout
+func TimeoutWithDefault(d time.Duration) Middleware
+func TimeoutPerProvider(perProvider map[string]time.Duration) Middleware
+func Timeout(cfg TimeoutConfig) Middleware
+
+type TimeoutConfig struct {
+    Default     time.Duration
+    PerProvider  map[string]time.Duration
+    PerModel     map[string]time.Duration
+}
+
+// Retry
+func Retry(cfg RetryConfig) Middleware
+
+type RetryConfig struct {
+    MaxAttempts  int
+    InitialDelay time.Duration
+    MaxDelay     time.Duration
+    Multiplier   float64
+    RetryOn      func(err error) bool
+}
+
+// Logging
+func Logging(logger provider.Logger) Middleware
+
+// Metrics
+func Metrics(collector provider.MetricsCollector) Middleware
+
+// Tracing (OpenTelemetry)
+func Tracing(tp trace.TracerProvider) Middleware
+func TracingWithConfig(tp trace.TracerProvider, cfg TracingConfig) Middleware
+
+// Panic recovery
+func Recover() Middleware
+```
+
+**Example:**
+```go
+handler := middleware.Chain(
+    middleware.Recover(),
+    middleware.Logging(logger),
+    middleware.Metrics(collector),
+    middleware.Retry(middleware.RetryConfig{
+        MaxAttempts:  3,
+        InitialDelay: time.Second,
+        MaxDelay:     30 * time.Second,
+        RetryOn: func(err error) bool {
+            return provider.IsRateLimited(err) || provider.IsTimeout(err)
+        },
+    }),
+)(baseHandler)
+
+// Custom middleware
+func CustomMiddleware(name string) middleware.Middleware {
+    return func(next middleware.Handler) middleware.Handler {
+        return middleware.HandlerFunc(func(ctx context.Context, req middleware.Request) (middleware.Response, error) {
+            // Pre-processing
+            resp, err := next.Handle(ctx, req)
+            // Post-processing
+            return resp, err
+        })
+    }
+}
+```
+
+---
+
+## Error Handling (`provider` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/provider`
+
+**Error struct:**
+```go
+type Error struct {
+    Code       ErrorCode
+    Message    string
+    Cause      error
+    Provider   string
+    ModelID    string
+    RetryAfter time.Duration
+    StatusCode int
+}
+```
+
+**Error codes:**
+```go
+CodeUnknown
+CodeInvalidRequest
+CodeInvalidModel
+CodeInvalidPrompt
+CodeInvalidInput
+CodeAuthenticationFailed
+CodeRateLimited
+CodeModelNotFound
+CodeContentFiltered
+CodeContextCanceled
+CodeAPITimeout
+CodeParseError
+CodeUnsupportedModel
+CodeUnsupportedOperation
+```
+
+**Helper functions:**
+```go
+provider.IsRateLimited(err error) bool
+provider.RetryAfter(err error) time.Duration
+provider.IsTimeout(err error) bool
+provider.IsContextCanceled(err error) bool
+provider.IsAuthenticationError(err error) bool
+provider.IsNotFoundError(err error) bool
+provider.IsInvalidInput(err error) bool
+provider.IsContentFiltered(err error) bool
+provider.ErrorCodeOf(err error) ErrorCode
+```
+
+**Sentinel errors:**
+```go
+provider.ErrInvalidModel
+provider.ErrInvalidPrompt
+provider.ErrInvalidInput
+provider.ErrInvalidMediaType
+provider.ErrRateLimited
+provider.ErrContextCanceled
+provider.ErrAPITimeout
+provider.ErrAuthenticationFailed
+provider.ErrModelNotFound
+provider.ErrContentFiltered
+provider.ErrUnsupportedModel
+provider.ErrUnsupportedOperation
+```
+
+**Error handling pattern:**
+```go
+result, err := generate.Generate(ctx, model, "prompt")
+if err != nil {
+    if provider.IsRateLimited(err) {
+        delay := provider.RetryAfter(err)
+        time.Sleep(delay)
+        // retry
+    }
+    if provider.IsAuthenticationError(err) {
+        // check API key
+    }
+    if provider.IsTimeout(err) {
+        // handle timeout
+    }
+}
+```
+
+---
+
+## Capability System (`provider` package)
+
+**Import:** `github.com/seifalmotaz/lamar-ai-sdk/provider`
+
+**Capability checks:**
+```go
+func CanGenerate(m Model) bool
+func CanStream(m Model) bool
+func CanEmbed(m Model) bool
+func IsLanguageModel(m Model) bool
+func CanGenerateImage(m Model) bool
+func CanTranscribe(m Model) bool
+func CanSynthesize(m Model) bool
+func HasCapability(m Model, cap Capability) bool
+```
+
+**Capability constants:**
+```go
+CapStreaming       // Streaming support
+CapTools           // Function/tool calling
+CapVision          // Image understanding
+CapAudio           // Audio input/output
+CapJSON            // Structured JSON output
+CapReasoning       // Reasoning (O1 models)
+CapImageGeneration // Image generation
+CapTranscription   // Audio transcription
+CapSpeech          // Text-to-speech
+```
+
+**Example:**
+```go
+if provider.CanStream(model) {
+    // Use stream.Stream
+} else if provider.CanGenerate(model) {
+    // Use generate.Generate
+}
+
+if provider.HasCapability(model, provider.CapVision) {
+    // Model supports image input
+}
+```
+
+---
+
+## Type Reference
+
+**Usage:**
+```go
+type Usage struct {
+    PromptTokens     int
+    CompletionTokens int
+    TotalTokens      int
+}
+```
+
+**FinishReason:**
+```go
+FinishReasonStop          // Natural stop
+FinishReasonLength        // Max tokens reached
+FinishReasonToolCalls     // Tool calls made
+FinishReasonContentFilter // Content filtered
+FinishReasonError         // Error
+```
+
+**ToolDefinition:**
+```go
+type ToolDefinition struct {
+    Name        string
+    Description string
+    InputSchema json.RawMessage
+}
+```
+
+**ToolCall:**
+```go
+type ToolCall struct {
+    ID    string
+    Name  string
+    Input json.RawMessage
+}
+```
+
+**ToolChoice:**
+```go
+type ToolChoice struct {
+    Type     string  // "auto", "none", "required", "tool"
+    ToolName string  // Tool name when Type="tool"
+}
+```
+
+**ResponseFormat:**
+```go
+type ResponseFormat struct {
+    Type       string
+    JSONSchema json.RawMessage
+}
+
+func ResponseFormatText() ResponseFormat
+func ResponseFormatJSON() ResponseFormat
+func ResponseFormatJSONSchema(schema json.RawMessage) ResponseFormat
+```
+
+**Message:**
+```go
+type Message struct {
+    Role    MessageRole  // "system", "user", "assistant", "tool"
+    Content []Content    // Content parts
+}
+
+type MessageRole string
+const (
+    RoleSystem    MessageRole = "system"
+    RoleUser      MessageRole = "user"
+    RoleAssistant MessageRole = "assistant"
+    RoleTool      MessageRole = "tool"
+)
+```
+
+**Logger interface:**
+```go
+type Logger interface {
+    Debug(msg string, args ...any)
+    Info(msg string, args ...any)
+    Warn(msg string, args ...any)
+    Error(msg string, args ...any)
+}
+```
+
+**MetricsCollector interface:**
+```go
+type MetricsCollector interface {
+    RecordRequest(ctx context.Context, provider, model string, duration time.Duration, err error)
+    RecordTokens(ctx context.Context, provider, model string, prompt, completion int)
+    RecordStreamStart(ctx context.Context, provider, model string)
+    RecordStreamEvent(ctx context.Context, provider, model, eventType string)
+    RecordStreamEnd(ctx context.Context, provider, model string, duration time.Duration)
+}
+```
